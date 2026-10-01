@@ -14,5 +14,14 @@ public interface IDungeonRunRepository
     /// </summary>
     Task<DungeonRun?> FindLatestBySeedAsync(Seed seed, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// The run of a Player game session (ADR-GLOB-011): a session explores one dungeon.
+    /// The most recent one if older data holds several.
+    /// </summary>
+    Task<DungeonRun?> FindByGameSessionIdAsync(
+        Guid gameSessionId,
+        CancellationToken cancellationToken
+    );
+
     Task AddAsync(DungeonRun dungeonRun, CancellationToken cancellationToken);
 }

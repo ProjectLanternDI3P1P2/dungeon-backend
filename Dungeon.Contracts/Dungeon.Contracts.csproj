@@ -8,8 +8,8 @@
     <PackageId>Dungeon.Contracts</PackageId>
     <Description>Public Protocol Buffers and generated gRPC types exposed by the Dungeon service.</Description>
     <PackageTags>grpc;protobuf;contracts</PackageTags>
-    <PackageProjectUrl>https://github.com/ProjectLanternDI3P1P2/dotnet-backend-template</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/ProjectLanternDI3P1P2/dotnet-backend-template.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ProjectLanternDI3P1P2/dungeon-backend</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ProjectLanternDI3P1P2/dungeon-backend.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -25,9 +25,11 @@
 
   <ItemGroup>
     <Protobuf Include="Protos/dungeon_player_v1.proto" GrpcServices="Both" />
+    <Protobuf Include="Protos/dungeon_run_v1.proto" GrpcServices="Both" />
     <Protobuf Include="Protos/dungeon_events_v1.proto" GrpcServices="None" />
     <!-- Consumers that use another language can retrieve the source contract from the package. -->
     <None Include="Protos/dungeon_player_v1.proto" Pack="true" PackagePath="proto" />
+    <None Include="Protos/dungeon_run_v1.proto" Pack="true" PackagePath="proto" />
     <None Include="Protos/dungeon_events_v1.proto" Pack="true" PackagePath="proto" />
     <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>

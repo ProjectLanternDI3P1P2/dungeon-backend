@@ -1,5 +1,6 @@
 using Dungeon.Application.Features.DungeonRunUseCase.CreateDungeonRun;
 using Dungeon.Application.Features.DungeonRunUseCase.DefeatFloorBoss;
+using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunByGameSessionId;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
 using Dungeon.Application.Features.DungeonRunUseCase.TakeStairsDown;
@@ -35,10 +36,14 @@ public sealed class DungeonRunController(IMediator mediator, ILogger logger) : C
             ),
             cancellationToken
         );
-        var run = await mediator.Send(new GetDungeonRunByIdQuery(runId), cancellationToken);
+        // By game session: when the session already had its run, that run is the answer.
+        var run = await mediator.Send(
+            new GetDungeonRunByGameSessionIdQuery(createDungeonRunDto.GameSessionId),
+            cancellationToken
+        );
 
-        logger.Information("Dungeon run {RunId} created with seed {Seed}.", runId, run.Seed);
-        return CreatedAtAction(nameof(GetById), new { runId }, run);
+        logger.Information("Dungeon run {RunId} created with seed {Seed}.", run.Id, run.Seed);
+        return CreatedAtAction(nameof(GetById), new { runId = run.Id }, run);
     }
 
     [HttpGet("{runId:guid}")]
