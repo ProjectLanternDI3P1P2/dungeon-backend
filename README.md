@@ -181,7 +181,7 @@ feature/xxx --merge commit--> dev --merge commit--> main --> tag + CHANGELOG
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org):
 `feat:` and `fix:` appear in the changelog and move the version, everything else
-(`chore:`, `ci:`, `refactor:`, `test:`, `docs:`, `build:`, `style:`) is hidden and
+(`chore:`, `ci:`, `cd:`, `refactor:`, `test:`, `docs:`, `build:`, `style:`) is hidden and
 moves nothing. Since every commit reaches `main`, every commit message is checked:
 by a `commit-msg` hook locally and by the `Commitlint` job in CI. The full rules
 are in [docs/GIT_RULES.md](./docs/GIT_RULES.md).

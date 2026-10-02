@@ -16,7 +16,7 @@ jobs:
     permissions:
       contents: read
       packages: read
-    uses: ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml@0cca42d87c1e73dcae038c639fd166cabf1d4dbf # fix/cd-main-pipeline
+    uses: ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml@06761f0b31acaa488e39c909bcb422a1649924d7 # main
     with:
       application: dungeon
       image: registry.lantern.diiage/lantern/dungeon-backend
