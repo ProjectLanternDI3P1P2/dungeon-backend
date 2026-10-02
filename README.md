@@ -44,11 +44,21 @@ The shape of new dungeons is configured under `Dungeon:Generation`
 
 ## Internal gRPC contract
 
-`Dungeon.Contracts` owns the versioned `dungeon_player_v1.proto` contract and the
-generated C# gRPC types. It is referenced locally by the server projects; it never
-pulls this service's Domain or Application types into the wire contract.
+`Dungeon.Contracts` owns the versioned `dungeon_run_v1.proto` and
+`dungeon_player_v1.proto` contracts and the generated C# gRPC types. It is
+referenced locally by the server projects; it never pulls this service's Domain or
+Application types into the wire contract.
 
-The template exposes `DungeonPlayerService/GetPlayer` on its internal gRPC endpoint.
+The internal gRPC endpoint exposes:
+
+- `DungeonRunService/CreateDungeonRun`: Player calls it when the creator of a game
+  session starts it (ADR-GLOB-011). Dungeon generates the dungeon, starts the run
+  and answers its `run_id` and `seed`. The call is idempotent per game session: a
+  retry, with the same `command_id` or another one, returns the run the session
+  already has. Statuses and an example are in
+  [Dungeon.Contracts/README.md](Dungeon.Contracts/README.md).
+- `DungeonPlayerService/GetPlayer`: the template example.
+
 The REST API remains the client-facing interface. Locally, gRPC listens on
 `http://localhost:8081`; Docker binds it only to loopback. In Kubernetes, expose
 that port through an internal-only Service, never through the ingress.
