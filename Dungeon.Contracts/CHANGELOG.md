@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/contracts-v2.0.0...contracts-v3.0.0) (2026-10-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename the presentation, the contracts and the solution to Dungeon
+
+### Changed
+
+* rename the presentation, the contracts and the solution to Dungeon ([0ddb904](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/0ddb9041bcb768601c10823d6d7869a2a9ab156c))
+
 ## [2.0.0](https://github.com/ProjectLanternDI3P1P2/dotnet-backend-template/compare/contracts-v1.0.0...contracts-v2.0.0) (2026-09-23)
 
 
