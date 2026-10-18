@@ -222,9 +222,7 @@ Mesures faites en version 3, non refaites depuis :
 
 ## 7. Suite
 
-- **US déplacement des silhouettes** : chaque `kind` se déplace selon la table
-  du §2, au tour par tour, avec une portée d'aggro propre à son type (une
-  constante, pas une valeur générée).
+- **US déplacement des silhouettes** : spécifiée dans `DEPLACEMENT_MOBS.fr.md`.
 - **US déclenchement du combat** : être à une case d'une silhouette, diagonales
   comprises (distance de Chebyshev), lance le combat contre son pack.
 - Contrat gRPC `CreateDungeonRun` pour le service Player (ADR-GLOB-011) ; pour
