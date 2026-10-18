@@ -38,11 +38,16 @@ internal static class MobTurn
         {
             MobBehaviour behaviour = rules.For(mob.Kind);
             bool diagonal = behaviour.Step == MobStep.Diagonal;
-            if (!behaviour.ActsOn(mob.Tick))
+            if (mob.IsAggro && behaviour.Step == MobStep.Teleport)
+            {
+                // Announces on the turn before its action, so it acts off-cadence too.
+                Teleport(mob, floor, walking, behaviour, hero, IsFree);
+            }
+            else if (!behaviour.ActsOn(mob.Tick))
             {
                 // Its cadence lets it rest this turn.
             }
-            else if (mob.IsAggro && behaviour.Step != MobStep.Teleport)
+            else if (mob.IsAggro)
             {
                 DistanceField field = diagonal
                     ? flying ??= DistanceField.From(floor, hero, diagonal: true)
@@ -89,6 +94,74 @@ internal static class MobTurn
                 run.Discover(doorRoom);
             }
         }
+    }
+
+    /// <summary>
+    /// On the turn before it acts, a mage announces the tile it will jump to; when it acts, it
+    /// lands there if the tile is free, otherwise it stays and announces another one.
+    /// </summary>
+    private static void Teleport(
+        RunMob mob,
+        DungeonFloor floor,
+        DistanceField field,
+        MobBehaviour behaviour,
+        Position hero,
+        Func<Position, bool> isFree
+    )
+    {
+        if (behaviour.ActsOn(mob.Tick))
+        {
+            if (mob.Teleport is Position landing && isFree(landing))
+            {
+                mob.MoveTo(landing);
+                mob.Announce(null);
+            }
+            else
+            {
+                mob.Announce(JumpTarget(mob, floor, field, behaviour.TeleportDistance, hero));
+            }
+        }
+        else if (behaviour.ActsOn(mob.Tick + 1))
+        {
+            mob.Announce(JumpTarget(mob, floor, field, behaviour.TeleportDistance, hero));
+        }
+    }
+
+    /// <summary>
+    /// The tile <paramref name="distance"/> steps down the field, short of the hero: the jump
+    /// follows the path, so it never crosses a wall. Null when there is nowhere to go.
+    /// </summary>
+    private static Position? JumpTarget(
+        RunMob mob,
+        DungeonFloor floor,
+        DistanceField field,
+        int distance,
+        Position hero
+    )
+    {
+        Position at = mob.Position;
+        for (int step = 0; step < distance; step++)
+        {
+            Position? next = null;
+            int best = field.To(at) ?? 0;
+            foreach (Position tile in DistanceField.Neighbours(floor, at, diagonal: false))
+            {
+                if (tile != hero && field.To(tile) is int steps && steps < best)
+                {
+                    next = tile;
+                    best = steps;
+                }
+            }
+
+            if (next is not Position found)
+            {
+                break;
+            }
+
+            at = found;
+        }
+
+        return at == mob.Position ? null : at;
     }
 
     /// <summary>
