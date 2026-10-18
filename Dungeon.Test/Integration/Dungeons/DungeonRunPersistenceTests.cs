@@ -164,6 +164,61 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
             .Equal(firstCopy.Mobs.Select(mob => (mob.Position, mob.IsAggro)));
     }
 
+    [Fact]
+    public async Task Load_AfterGoingDown_GivesTheMobsInElementOrder()
+    {
+        // Arrange: on the way down, the rows of the next floor are partly updated (reused
+        // element ids), partly inserted, and PostgreSQL returns them in its own order.
+        CancellationToken cancellation = TestContext.Current.CancellationToken;
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        DungeonFloor floor = dungeon.Floors[0];
+        DungeonRun run = DungeonRun.Start(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            dungeon,
+            DateTimeOffset.UtcNow
+        );
+        await using (DungeonDbContext context = NewContext())
+        {
+            await new DungeonRunRepository(context).AddAsync(run, cancellation);
+            await context.SaveChangesAsync(cancellation);
+        }
+
+        await using (DungeonDbContext context = NewContext())
+        {
+            DungeonRun loaded = (
+                await new DungeonRunRepository(context).GetByIdAsync(run.Id, cancellation)
+            )!;
+            Position boss = floor
+                .Elements.Single(element => element.Type == ElementType.Boss)
+                .Position;
+            DungeonTestData.WalkTo(loaded, dungeon, boss);
+            loaded.DefeatFloorBoss(dungeon);
+            Position gate = DungeonTestData.PositionsOf(floor, CellType.Gate).Single();
+            DungeonTestData.WalkTo(loaded, dungeon, gate.Step(Direction.South));
+            loaded.MoveHero(Direction.North, dungeon);
+            await context.SaveChangesAsync(cancellation);
+        }
+
+        // Act
+        await using DungeonDbContext reading = NewContext();
+        DungeonRun stored = (
+            await new DungeonRunRepository(reading).GetByIdAsync(run.Id, cancellation)
+        )!;
+
+        // Assert: the mobs act in this order, so a replay depends on it.
+        stored.CurrentFloor.Should().Be(1);
+        stored
+            .Mobs.Select(mob => mob.ElementId)
+            .Should()
+            .Equal(
+                dungeon
+                    .Floors[1]
+                    .Elements.Where(element => element.Type == ElementType.Enemy)
+                    .Select(element => element.Id)
+            );
+    }
+
     private static MobRules AllHunters()
     {
         MobBehaviour hunter = new("1", 1000, MobStep.Orthogonal, MobIdle.None);
