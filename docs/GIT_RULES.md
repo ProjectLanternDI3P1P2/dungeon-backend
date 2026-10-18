@@ -47,7 +47,7 @@ reaches `main` and release-please builds the changelog and the version from them
 | `perf` | Performance | patch |
 | `refactor` | Changed | patch |
 | `revert` | Reverted | patch |
-| `docs`, `test`, `chore`, `ci`, `build`, `style` | hidden | none |
+| `docs`, `test`, `chore`, `ci`, `cd`, `build`, `style` | hidden | none |
 
 A `!` after the type, or a `BREAKING CHANGE:` footer, is a breaking change: major
 bump. Hidden types alone never trigger a release.
