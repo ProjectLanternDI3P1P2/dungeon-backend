@@ -1,5 +1,6 @@
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Exceptions;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.ValueObjects;
 
 namespace Dungeon.Domain.Entities;
@@ -96,6 +97,13 @@ public sealed class DungeonRun
     /// <returns>Where the hero stands after the move, on the current floor.</returns>
     public Position MoveHero(Direction direction, GeneratedDungeon dungeon)
     {
+        return MoveHero(direction, dungeon, MobRules.Default);
+    }
+
+    /// <inheritdoc cref="MoveHero(Direction, GeneratedDungeon)"/>
+    /// <remarks>Once the hero has moved, the mobs of the floor take their turn.</remarks>
+    public Position MoveHero(Direction direction, GeneratedDungeon dungeon, MobRules mobRules)
+    {
         DungeonFloor floor = GetCurrentFloor(dungeon);
         Position target = HeroPosition.Step(direction);
 
@@ -117,6 +125,7 @@ public sealed class DungeonRun
 
         HeroX = target.X;
         HeroY = target.Y;
+        MobTurn.Play(this, floor, mobRules);
         Turn++;
 
         return target;
@@ -198,6 +207,14 @@ public sealed class DungeonRun
     /// The mobs of the floor the party arrives on take over from those of the floor above:
     /// one per enemy element, on its spawn tile. Only the arrival room is discovered.
     /// </summary>
+    internal void Discover(int roomId)
+    {
+        if (!_discoveredRoomIds.Contains(roomId))
+        {
+            _discoveredRoomIds.Add(roomId);
+        }
+    }
+
     private void ArriveOn(DungeonFloor floor)
     {
         _mobs.Clear();
