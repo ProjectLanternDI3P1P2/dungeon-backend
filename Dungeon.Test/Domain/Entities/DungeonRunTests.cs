@@ -251,12 +251,6 @@ public class DungeonRunTests
     private static Position BossOf(DungeonFloor floor) =>
         floor.Elements.Single(element => element.Type == ElementType.Boss).Position;
 
-    private static void WalkTo(DungeonRun run, GeneratedDungeon dungeon, Position target)
-    {
-        DungeonFloor floor = dungeon.Floors[run.CurrentFloor];
-        foreach (Direction direction in DungeonTestData.FindPath(floor, run.HeroPosition, target)!)
-        {
-            run.MoveHero(direction, dungeon);
-        }
-    }
+    private static void WalkTo(DungeonRun run, GeneratedDungeon dungeon, Position target) =>
+        DungeonTestData.WalkTo(run, dungeon, target);
 }

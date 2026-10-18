@@ -11,6 +11,9 @@ namespace Dungeon.Domain.Entities;
 /// </summary>
 public sealed class DungeonRun
 {
+    private readonly List<RunMob> _mobs = [];
+    private List<int> _discoveredRoomIds = [];
+
     // Required by EF Core.
     private DungeonRun() { }
 
@@ -45,6 +48,12 @@ public sealed class DungeonRun
 
     public DateTimeOffset StartedAt { get; private set; }
 
+    /// <summary>The mobs of the current floor, dead ones included, in element order.</summary>
+    public IReadOnlyList<RunMob> Mobs => _mobs;
+
+    /// <summary>The rooms of the current floor a hero of the party has set foot in.</summary>
+    public IReadOnlyList<int> DiscoveredRoomIds => _discoveredRoomIds;
+
     public Position HeroPosition => new(HeroX, HeroY);
 
     public DungeonSettings Settings => new(RoomCount, FloorCount);
@@ -58,7 +67,7 @@ public sealed class DungeonRun
     {
         Position entrance = dungeon.Floors[0].Entrance;
 
-        return new DungeonRun
+        DungeonRun run = new()
         {
             Id = runId,
             GameSessionId = gameSessionId,
@@ -73,6 +82,9 @@ public sealed class DungeonRun
             Turn = 0,
             StartedAt = startedAt,
         };
+        run.ArriveOn(dungeon.Floors[0]);
+
+        return run;
     }
 
     /// <summary>
@@ -126,6 +138,7 @@ public sealed class DungeonRun
         }
 
         CurrentFloor++;
+        ArriveOn(dungeon.Floors[CurrentFloor]);
         Position entrance = dungeon.Floors[CurrentFloor].Entrance;
         HeroX = entrance.X;
         HeroY = entrance.Y;
@@ -179,5 +192,18 @@ public sealed class DungeonRun
         }
 
         return dungeon.Floors[CurrentFloor];
+    }
+
+    /// <summary>
+    /// The mobs of the floor the party arrives on take over from those of the floor above:
+    /// one per enemy element, on its spawn tile. Only the arrival room is discovered.
+    /// </summary>
+    private void ArriveOn(DungeonFloor floor)
+    {
+        _mobs.Clear();
+        _mobs.AddRange(
+            floor.Elements.Where(element => element.Type == ElementType.Enemy).Select(RunMob.Spawn)
+        );
+        _discoveredRoomIds = floor.GetRoomId(floor.Entrance) is int room ? [room] : [];
     }
 }
