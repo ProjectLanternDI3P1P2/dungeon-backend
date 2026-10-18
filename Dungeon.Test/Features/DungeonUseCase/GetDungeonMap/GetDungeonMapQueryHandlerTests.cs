@@ -62,6 +62,28 @@ public class GetDungeonMapQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_KnownSeed_NamesTheKindOfEveryEnemyOnly()
+    {
+        // Act
+        GetDungeonMapResult map = await CreateHandler()
+            .Handle(
+                new GetDungeonMapQuery(DungeonTestData.ReferenceSeed.ToString(), 0),
+                TestContext.Current.CancellationToken
+            );
+
+        // Assert
+        map.Elements.Where(element => element.Type == "enemy")
+            .Should()
+            .NotBeEmpty()
+            .And.OnlyContain(element =>
+                new[] { "zombie", "mage", "goblin", "bat" }.Contains(element.Kind)
+            );
+        map.Elements.Where(element => element.Type != "enemy")
+            .Should()
+            .OnlyContain(element => element.Kind == null);
+    }
+
+    [Fact]
     public async Task Handle_SameSeedOnTwoInstances_ReturnsIdenticalMaps()
     {
         // Arrange
