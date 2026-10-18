@@ -263,6 +263,46 @@ public class DungeonGeneratorRulesTests
         kinds.Should().BeEquivalentTo(Enum.GetValues<EnemyKind>().Cast<EnemyKind?>());
     }
 
+    [Theory]
+    [InlineData(ElementType.Enemy, null)]
+    [InlineData(ElementType.Boss, EnemyKind.Zombie)]
+    [InlineData(ElementType.Item, EnemyKind.Bat)]
+    public void ValidateFloor_KindNotMatchingTheElementType_IsReported(
+        ElementType type,
+        EnemyKind? kind
+    )
+    {
+        // Arrange: a valid generated floor whose first element is retyped.
+        DungeonFloor valid = DungeonTestData.Generate(DungeonTestData.ReferenceSeed).Floors[0];
+        DungeonElement[] elements = [.. valid.Elements];
+        elements[0] = elements[0] with { Type = type, Kind = kind };
+        DungeonFloor floor = new(
+            valid.Index,
+            valid.IsFinalFloor,
+            valid.Width,
+            valid.Height,
+            [
+                .. from y in Enumerable.Range(0, valid.Height)
+                from x in Enumerable.Range(0, valid.Width)
+                select valid.GetCell(new Position(x, y)),
+            ],
+            valid.Rooms,
+            elements,
+            valid.Entrance
+        );
+
+        // Act
+        IReadOnlyList<string> violations = DungeonValidator.ValidateFloor(
+            floor,
+            valid.Rooms.Count
+        );
+
+        // Assert
+        violations
+            .Should()
+            .Contain("element 0: an enemy needs a kind, other elements have none");
+    }
+
     [Fact]
     public void Generate_FiveHundredSeeds_NeverBreaksABusinessRule()
     {
