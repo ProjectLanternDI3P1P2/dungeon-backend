@@ -52,9 +52,9 @@ termine par un boss ; celui du dernier étage est le boss final.
    | Type | Gabarits |
    | --- | --- |
    | Départ | 5 (`StartRoomTemplates`) |
-   | Combat | 28 (`CombatRoomTemplates`), dont 11 servent aussi de salle vide |
+   | Combat | 28 (`CombatRoomTemplates`), dont 10 servent aussi de salle vide |
    | Trésor | 8 (`TreasureRoomTemplates`) |
-   | Vide | 7 (`EmptyRoomTemplates`), plus les 11 gabarits de combat partagés |
+   | Vide | 7 (`EmptyRoomTemplates`), plus les 10 gabarits de combat partagés |
    | Boss | 8 (`BossRoomTemplates`), avec une tuile praticable sous la grille |
 
    Légende d'un gabarit : `.` sol, `#` mur, espace = fosse, `o` tonneau ou
@@ -95,8 +95,8 @@ termine par un boss ; celui du dernier étage est le boss final.
    étage (sauf le dernier, qui n'en a pas) **dans le mur nord de la salle du
    boss**, arrivée au centre de la salle de départ, toute tuile praticable
    atteignable depuis l'entrée, éléments sur des tuiles libres de leur salle,
-   un `kind` sur chaque ennemi et sur aucun autre élément. Une violation lève une exception plutôt que de livrer
-   un donjon cassé.
+   un `kind` sur chaque ennemi et sur aucun autre élément. Une violation lève
+   une exception plutôt que de livrer un donjon cassé.
 
 ## 3. Seed et déterminisme
 
@@ -112,9 +112,13 @@ termine par un boss ; celui du dernier étage est le boss final.
   versions de .NET. `string.GetHashCode()` / `HashCode` : aléatoires à chaque
   démarrage du processus. `double` : arrondis variables selon la plateforme.
   Itération d'un `HashSet`/`Dictionary` : ordre non garanti.
-- **Flux indépendants.** Chaque étape (plan, formes, contenu) et chaque étage
-  tire dans son propre flux dérivé de la seed. Ajouter un tonneau ne décale pas
-  le plan, et un étage inférieur peut être généré sans ceux du dessus.
+- **Flux indépendants.** Chaque étape et chaque étage tire dans son propre flux
+  dérivé de la seed (`RandomStream`) : plan (`Layout`), gabarits
+  (`RoomTemplates`), contenu (`Content`) et types des silhouettes (`Mobs`). Le
+  flux 2, celui des anciennes formes de salles, n'est plus tiré et ne doit pas
+  être réutilisé. Ajouter un tonneau ne décale pas le plan, tirer le type d'une
+  silhouette ne déplace rien, et un étage inférieur peut être généré sans ceux
+  du dessus.
 - **Version.** `DungeonGenerator.CurrentVersion` est stockée avec chaque run.
   Un test *golden master* échoue dès qu'une modification change le donjon
   d'une seed existante : il faut alors incrémenter la version (et garder
@@ -129,8 +133,7 @@ termine par un boss ; celui du dernier étage est le boss final.
 - **Seed inconnue.** `GET /dungeons/{seed}/...` répond 404 pour une seed
   qu'aucune run n'a utilisée, et 422 pour une seed mal formée. Le donjon
   n'est jamais stocké : il est régénéré à la demande (environ 13 ms pour les
-  4 étages) et gardé
-  en cache mémoire.
+  4 étages, mesuré en version 3) et gardé en cache mémoire.
 - **Rejouer.** `POST /dungeon-runs` avec une `seed` crée une nouvelle run sur
   le même donjon, avec les réglages et la version de la run d'origine.
 
@@ -139,7 +142,7 @@ termine par un boss ; celui du dernier étage est le boss final.
 | Méthode et route | Rôle | Codes |
 | --- | --- | --- |
 | `POST /api/v1/dungeon-runs` `{ gameSessionId, runId?, seed? }` | Crée une run et génère son donjon. Idempotent par `runId`. | 201, 409, 422 |
-| `GET /api/v1/dungeon-runs/{runId}` | État de la run : héros, tour, salle courante, éléments sous le héros. | 200, 404 |
+| `GET /api/v1/dungeon-runs/{runId}` | État de la run : héros, tour, salle courante, éléments sous le héros. 409 si la run date d'une version antérieure du générateur. | 200, 404, 409 |
 | `POST /api/v1/dungeon-runs/{runId}/moves` `{ direction }` | Une tuile, un tour. Murs, obstacles, colonnes, balustrades, eau, lave, tombes, vide, hors carte et grille d'un boss encore debout refusés. Entrer dans la grille ouverte fait descendre à l'étage suivant. | 200, 404, 409, 422 |
 | `POST /api/v1/dungeon-runs/{runId}/boss-defeats` | Enregistre la victoire sur le boss de l'étage : la grille s'ouvre ; sur le dernier étage, la run est gagnée (`won`). À appeler par Combat ; le héros doit être dans la salle du boss. | 200, 404, 409 |
 | `GET /api/v1/dungeons/{seed}/map?floor=0` | Étage complet : `rows` (1 caractère par tuile, décodé par `legend`), salles, éléments. | 200, 404, 422 |
