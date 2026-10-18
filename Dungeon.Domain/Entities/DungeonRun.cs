@@ -123,6 +123,11 @@ public sealed class DungeonRun
             throw new InvalidMoveException(target, $"a {cell} tile is not walkable");
         }
 
+        if (_mobs.Any(mob => mob.IsActive && mob.Position == target))
+        {
+            throw new InvalidMoveException(target, "a mob stands there");
+        }
+
         HeroX = target.X;
         HeroY = target.Y;
         MobTurn.Play(this, floor, mobRules);

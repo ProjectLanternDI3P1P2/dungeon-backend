@@ -7,8 +7,8 @@ namespace Dungeon.Domain.Mobs;
 
 /// <summary>
 /// What the mobs of the current floor do once the hero has moved (DEPLACEMENT_MOBS.fr.md,
-/// section 3): the party discovers the room it stands in, mobs in range turn to aggro, then
-/// every active mob acts on its cadence, in element order.
+/// section 3): the party discovers the room it stands in, mobs in range turn to aggro, every
+/// active mob acts on its cadence, in element order, and those then next to the hero die.
 /// </summary>
 // TODO(tech-debt): a single hero; the party of the multiplayer will need the nearest of several.
 internal static class MobTurn
@@ -68,6 +68,13 @@ internal static class MobTurn
             }
 
             mob.NextTick();
+        }
+
+        // TODO(tech-debt): contact kills the mob in place of a fight — call Combat with its pack
+        // (fight-trigger user story).
+        foreach (RunMob mob in active.Where(mob => mob.Position.DistanceTo(hero) <= 1))
+        {
+            mob.Kill();
         }
 
         bool IsFree(Position tile) => tile != hero && !active.Any(other => other.Position == tile);
