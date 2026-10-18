@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 
 ARG DOTNET_VERSION=10.0
 
@@ -8,6 +8,7 @@ ARG DOTNET_VERSION=10.0
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS restore
 
 WORKDIR /src
+COPY NuGet.config ./
 
 # Copier uniquement les fichiers projet pour profiter
 # au maximum du cache Docker.
@@ -33,6 +34,7 @@ COPY Dungeon.Test/Dungeon.Test.csproj \
 
 # Cache NuGet BuildKit
 RUN --mount=type=cache,target=/root/.nuget/packages \
+    --mount=type=secret,id=github_packages_credentials,env=NuGetPackageSourceCredentials_github \
     dotnet restore Dungeon.Presentation.slnx
 
 
@@ -44,7 +46,7 @@ FROM restore AS build
 COPY . .
 
 RUN --mount=type=cache,target=/root/.nuget/packages \
-    dotnet build Dungeon.Presentation.slnx \
+    dotnet build Dungeon.Presentation/Dungeon.Presentation.csproj \
     --configuration Release \
     --no-restore
 
@@ -57,7 +59,7 @@ FROM build AS test
 RUN --mount=type=cache,target=/root/.nuget/packages \
     dotnet test Dungeon.Test/Dungeon.Test.csproj \
     --configuration Release \
-    --no-build \
+    --no-restore \
     --verbosity normal \
     --logger "console;verbosity=normal"
 
@@ -91,7 +93,7 @@ ENV ASPNETCORE_ENVIRONMENT=Production \
     DOTNET_RUNNING_IN_CONTAINER=true \
     DOTNET_EnableDiagnostics=0
 
-EXPOSE 8080
+EXPOSE 8080 8081
 
 # Copier uniquement les fichiers nécessaires au runtime
 COPY --from=publish --chown=$APP_UID:$APP_UID /app/publish ./
