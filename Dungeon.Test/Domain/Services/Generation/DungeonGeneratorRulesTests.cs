@@ -384,15 +384,10 @@ public class DungeonGeneratorRulesTests
         );
 
         // Act
-        IReadOnlyList<string> violations = DungeonValidator.ValidateFloor(
-            floor,
-            valid.Rooms.Count
-        );
+        IReadOnlyList<string> violations = DungeonValidator.ValidateFloor(floor, valid.Rooms.Count);
 
         // Assert
-        violations
-            .Should()
-            .Contain("element 0: an enemy needs a kind, other elements have none");
+        violations.Should().Contain("element 0: an enemy needs a kind, other elements have none");
     }
 
     [Fact]
@@ -471,7 +466,9 @@ public class DungeonGeneratorRulesTests
         Enumerable
             .Range(room.Interior.Y, room.Interior.Height)
             .SelectMany(y =>
-                Enumerable.Range(room.Interior.X, room.Interior.Width).Select(x => new Position(x, y))
+                Enumerable
+                    .Range(room.Interior.X, room.Interior.Width)
+                    .Select(x => new Position(x, y))
             )
             .Any(tile => floor.GetCell(tile) == CellType.Floor && !TouchesAWall(floor, tile));
 
