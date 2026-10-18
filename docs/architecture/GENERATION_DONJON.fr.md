@@ -9,6 +9,7 @@
 | --- | --- | --- |
 | Générer le donjon (salles, portes, obstacles, éléments) | Service Dungeon, couche Domain | ADR-GLOB-011 : Dungeon possède le `DungeonRun`. Combat et Inventory doivent lire les mêmes positions par seed (US-DUNGEON-02). |
 | Placer les silhouettes d'ennemis et choisir leur type de déplacement | Service Dungeon, couche Domain | Même raison : la carte, et ce qui s'y déplace, appartient au Dungeon. |
+| Ce que rapporte un combat (loot) | Service Rewards | Dungeon ne pose aucun objet dans les salles de combat ; seuls les coffres des salles au trésor sont sur la carte. |
 | Contenu du pack d'une silhouette (monstres, statistiques, capacités) | Service Combat | Combat génère les monstres à la demande ; il peut s'appuyer sur `(seed, étage, id de l'élément)` pour rester déterministe. |
 | Valider un déplacement | Service Dungeon, `DungeonRun.MoveHero` | ADR-FE-008 : le backend est la seule source de vérité. |
 | Choisir les tuiles du tileset, animer, brouillard de guerre | Front Nuxt, feature `dungeon` | Le choix d'un sprite est une décision de présentation, pas une règle métier. |
@@ -59,9 +60,10 @@ termine par un boss ; celui du dernier étage est le boss final.
 
    Légende d'un gabarit : `.` sol, `#` mur, espace = fosse, `o` tonneau ou
    jarre, `I` colonne, `=` balustrade, `g` grille d'égout (praticable), `~`
-   eau, `^` lave, `T` tombe, `e` emplacement d'ennemi, `t` piège, `$` trésor,
-   `B` boss. Tout gabarit a des dimensions impaires, un centre praticable et une
-   tuile praticable au milieu de chaque côté ; un test vérifie chacun.
+   eau, `^` lave, `T` tombe, `t` piège, `$` trésor, `B` boss. Les gabarits ne
+   placent pas les ennemis : c'est le générateur qui le fait. Tout gabarit a
+   des dimensions impaires, un centre praticable et une tuile praticable au
+   milieu de chaque côté ; un test vérifie chacun.
 6. **Tuiles** (`FloorBuilder`). Chaque colonne de la grille est aussi large que
    sa plus grande salle (plus une marge de 3 tuiles de chaque côté), chaque
    ligne aussi haute que sa plus grande salle. Chaque salle est centrée dans sa
@@ -70,16 +72,33 @@ termine par un boss ; celui du dernier étage est le boss final.
    est donc une ligne droite qui arrive au milieu d'un côté. Les murs sont
    posés ensuite autour de tout ce qui n'est pas du vide : fosses, cloisons et
    balustrades comprises.
-7. **Contenu.** Posé sur les emplacements des gabarits : le boss sur `B`, les
-   trésors sur `$`, tous les pièges `t` (élément `trap`, franchissable : c'est
-   au service Combat d'en appliquer les dégâts), et 1 à 4 ennemis tirés parmi
-   les emplacements `e`, plus nombreux loin du départ. Dans la salle du boss,
-   chaque `e` reçoit un garde.
+7. **Contenu.** Posé sur les emplacements des gabarits : le boss sur `B`, seul
+   dans sa salle, les trésors sur `$` et tous les pièges `t` (élément `trap`,
+   franchissable : c'est au service Combat d'en appliquer les dégâts). Les
+   salles de combat ne contiennent aucun objet : ce que rapporte un combat,
+   c'est Rewards qui le décide.
+
+   Les **ennemis** sont placés par le générateur, sans emplacement dans les
+   gabarits, et seulement dans les salles de combat : de 1 à 4 par salle,
+   `1 + profondeur × 2 / profondeurMax`, plus un avec 35 % de chance (la
+   profondeur est le nombre de portes depuis la salle de départ). Une case
+   accueille un ennemi si :
+
+   - c'est du sol simple, sans piège ;
+   - elle est à **plus de 2 cases de toute porte** de la salle (diagonales
+     comprises) : entrer dans une salle ne déclenche jamais un combat ;
+   - **aucun mur** ne l'entoure, sur ses 8 voisines : le mob a de la place
+     pour bouger. Dans les deux labyrinthes, où chaque case touche un mur,
+     cette règle est levée ;
+   - elle est à **au moins 3 cases** des autres ennemis de la salle : chaque
+     pack reste une silhouette distincte.
+
+   Toute salle de combat reçoit au moins un ennemi.
 
    Chaque ennemi est une **silhouette** : sur la carte, elle représente un pack
    dont Combat décide le contenu (monstres, statistiques, capacités). Dungeon
-   ne décide que son **type de déplacement** (`kind`), tiré uniformément dans
-   son propre flux (`Mobs`) :
+   ne décide que son **type de déplacement** (`kind`), tiré uniformément. Place,
+   nombre et type des ennemis sont tirés dans le même flux (`Mobs`) :
 
    | `kind` | Déplacement prévu (US déplacement, à venir) |
    | --- | --- |
@@ -114,11 +133,11 @@ termine par un boss ; celui du dernier étage est le boss final.
   Itération d'un `HashSet`/`Dictionary` : ordre non garanti.
 - **Flux indépendants.** Chaque étape et chaque étage tire dans son propre flux
   dérivé de la seed (`RandomStream`) : plan (`Layout`), gabarits
-  (`RoomTemplates`), contenu (`Content`) et types des silhouettes (`Mobs`). Le
-  flux 2, celui des anciennes formes de salles, n'est plus tiré et ne doit pas
-  être réutilisé. Ajouter un tonneau ne décale pas le plan, tirer le type d'une
-  silhouette ne déplace rien, et un étage inférieur peut être généré sans ceux
-  du dessus.
+  (`RoomTemplates`) et ennemis (`Mobs`). Les flux 2 (anciennes formes de
+  salles) et 3 (ancien `Content` : ennemis et loot sur les emplacements des
+  gabarits) ne sont plus tirés et ne doivent pas être réutilisés. Ajouter un
+  tonneau ne décale pas le plan, déplacer un ennemi ne change pas les salles,
+  et un étage inférieur peut être généré sans ceux du dessus.
 - **Version.** `DungeonGenerator.CurrentVersion` est stockée avec chaque run.
   Un test *golden master* échoue dès qu'une modification change le donjon
   d'une seed existante : il faut alors incrémenter la version (et garder
@@ -127,8 +146,10 @@ termine par un boss ; celui du dernier étage est le boss final.
   pièges ; **3** salles dessinées à la main, un boss par étage qui garde la
   salle d'escalier ; **4** plus de salle d'escalier, échelle au centre de la
   salle de départ et sortie par la grille de la salle du boss, eau, lave et
-  tombes ; **5** un type de déplacement sur chaque silhouette d'ennemi.
-  Version actuelle : **5**. Une run créée dans une version antérieure répond
+  tombes ; **5** un type de déplacement sur chaque silhouette d'ennemi ;
+  **6** ennemis placés par le générateur loin des portes et des murs, boss
+  seul dans sa salle, plus de loot dans les salles de combat.
+  Version actuelle : **6**. Une run créée dans une version antérieure répond
   409 : il faut lancer une nouvelle exploration.
 - **Seed inconnue.** `GET /dungeons/{seed}/...` répond 404 pour une seed
   qu'aucune run n'a utilisée, et 422 pour une seed mal formée. Le donjon
