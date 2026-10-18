@@ -228,6 +228,41 @@ public class DungeonGeneratorRulesTests
             .HaveCountGreaterThan(10);
     }
 
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_EveryEnemyHasAKindAndNoOtherElementDoes(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Assert: boss guards included, they are enemies too.
+            floor
+                .Elements.Where(element => element.Type == ElementType.Enemy)
+                .Should()
+                .OnlyContain(element => element.Kind != null);
+            floor
+                .Elements.Where(element => element.Type != ElementType.Enemy)
+                .Should()
+                .OnlyContain(element => element.Kind == null);
+        }
+    }
+
+    [Fact]
+    public void Generate_FiftySeeds_PlacesEveryKindOfMob()
+    {
+        // Act
+        List<EnemyKind?> kinds = DungeonTestData
+            .SampleSeeds(50)
+            .SelectMany(seed => DungeonTestData.Generate(seed).Floors)
+            .SelectMany(floor => floor.Elements)
+            .Select(element => element.Kind)
+            .Where(kind => kind != null)
+            .Distinct()
+            .ToList();
+
+        // Assert
+        kinds.Should().BeEquivalentTo(Enum.GetValues<EnemyKind>().Cast<EnemyKind?>());
+    }
+
     [Fact]
     public void Generate_FiveHundredSeeds_NeverBreaksABusinessRule()
     {

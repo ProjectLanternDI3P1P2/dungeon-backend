@@ -26,6 +26,8 @@ internal static class FloorBuilder
     private const int ExtraEnemyChancePercent = 35;
     private const int CombatLootChancePercent = 25;
 
+    private static readonly EnemyKind[] EnemyKinds = Enum.GetValues<EnemyKind>();
+
     public static DungeonFloor Build(
         Seed seed,
         int floorIndex,
@@ -53,6 +55,7 @@ internal static class FloorBuilder
 
         List<DungeonElement> elements = PlaceElements(
             DeterministicRandom.ForStream(seed, RandomStream.Content, floorIndex),
+            DeterministicRandom.ForStream(seed, RandomStream.Mobs, floorIndex),
             rooms
         );
 
@@ -281,14 +284,25 @@ internal static class FloorBuilder
 
     private static List<DungeonElement> PlaceElements(
         DeterministicRandom random,
+        DeterministicRandom mobs,
         List<RoomDraft> rooms
     )
     {
         List<DungeonElement> elements = [];
         int maxDepth = Math.Max(1, rooms.Max(room => room.Depth));
 
+        // The kind of a silhouette comes from its own stream: drawing it leaves every
+        // position, trap and loot of the seed where it was.
         void Add(ElementType type, Position position, RoomDraft room) =>
-            elements.Add(new DungeonElement(elements.Count, type, position, room.Id));
+            elements.Add(
+                new DungeonElement(
+                    elements.Count,
+                    type,
+                    position,
+                    room.Id,
+                    type == ElementType.Enemy ? mobs.Pick(EnemyKinds) : null
+                )
+            );
 
         foreach (RoomDraft room in rooms)
         {

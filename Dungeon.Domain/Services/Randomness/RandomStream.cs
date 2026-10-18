@@ -12,4 +12,7 @@ public enum RandomStream : uint
     // 2 was RoomShapes, no longer drawn from: never reuse it for another stage.
     Content = 3,
     RoomTemplates = 4,
+
+    /// <summary>The kind of each enemy silhouette.</summary>
+    Mobs = 5,
 }
