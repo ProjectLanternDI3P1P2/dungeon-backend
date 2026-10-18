@@ -40,6 +40,7 @@ public sealed class GetDungeonRunByIdQueryHandler(
                 .GetElementsAt(run.HeroPosition)
                 .Select(DungeonElementResult.From)
                 .ToList(),
+            Mobs = run.Mobs.Where(mob => mob.IsActive).Select(MobResult.From).ToList(),
             StartedAt = run.StartedAt,
         };
     }

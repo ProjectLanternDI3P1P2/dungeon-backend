@@ -30,6 +30,28 @@ public sealed record DungeonElementResult(
         );
 }
 
+/// <summary>A living mob of the current floor, where it stands this turn.</summary>
+/// <param name="NextTeleport">Where a mage will land on its next action; null otherwise.</param>
+public sealed record MobResult(
+    int Id,
+    string Kind,
+    int X,
+    int Y,
+    bool Aggro,
+    PositionResult? NextTeleport
+)
+{
+    public static MobResult From(RunMob mob) =>
+        new(
+            mob.ElementId,
+            DungeonContract.Name(mob.Kind),
+            mob.X,
+            mob.Y,
+            mob.IsAggro,
+            mob.Teleport is { } teleport ? PositionResult.From(teleport) : null
+        );
+}
+
 /// <summary>
 /// Names used on the wire for the dungeon enums, written out by hand (ADR-0033) so that
 /// renaming a C# member never breaks the Gateway, the frontend or another service.

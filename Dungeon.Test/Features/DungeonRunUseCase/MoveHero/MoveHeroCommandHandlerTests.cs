@@ -2,6 +2,7 @@ using Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Exceptions;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Repositories;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
@@ -28,8 +29,37 @@ public class MoveHeroCommandHandlerTests
 
         _handler = new MoveHeroCommandHandler(
             _dungeonRunRepositoryMock.Object,
-            new GeneratingDungeonProvider()
+            new GeneratingDungeonProvider(),
+            MobRules.Default
         );
+    }
+
+    [Fact]
+    public async Task Handle_PlaysTheMobsWithTheConfiguredRules()
+    {
+        // Arrange: rules under which every mob of the floor is in range and always acts.
+        MobBehaviour hunter = new("1", 1000, MobStep.Orthogonal, MobIdle.None);
+        MobRules everyoneHunts = new(
+            2,
+            Enum.GetValues<EnemyKind>().ToDictionary(kind => kind, _ => hunter)
+        );
+        MoveHeroCommandHandler handler = new(
+            _dungeonRunRepositoryMock.Object,
+            new GeneratingDungeonProvider(),
+            everyoneHunts
+        );
+        Position centre = WalkToTheCentreOfTheStartRoom();
+
+        // Act
+        await handler.Handle(
+            new MoveHeroCommand(_run.Id, "east"),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        _run.Mobs.Should().NotBeEmpty();
+        _run.Mobs.Should().OnlyContain(mob => mob.IsAggro);
+        _run.HeroPosition.Should().Be(new Position(centre.X + 1, centre.Y));
     }
 
     [Theory]

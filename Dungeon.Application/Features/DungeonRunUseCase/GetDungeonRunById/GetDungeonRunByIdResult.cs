@@ -23,5 +23,8 @@ public sealed class GetDungeonRunByIdResult
     /// <summary>Elements on the hero's tile: an enemy there is where Combat takes over.</summary>
     public IReadOnlyList<DungeonElementResult> ElementsHere { get; init; } = [];
 
+    /// <summary>The living mobs of the current floor, in element order.</summary>
+    public IReadOnlyList<MobResult> Mobs { get; init; } = [];
+
     public DateTimeOffset StartedAt { get; init; }
 }
