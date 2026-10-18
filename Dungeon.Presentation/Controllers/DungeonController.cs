@@ -16,6 +16,8 @@ public sealed class DungeonController(IMediator mediator, ILogger logger) : Cont
 {
     // A known seed always produces the same floor, so the browser and the Gateway may keep it
     // for good. Error responses are not affected: the header is only set on success.
+    // TODO(tech-debt): cached for a year per seed, not per generator version — put the version
+    // in the URL or an ETag if a seed may ever be served by another version.
     private const string ImmutableCacheControl = "public, max-age=31536000, immutable";
 
     [HttpGet("{seed}/map")]

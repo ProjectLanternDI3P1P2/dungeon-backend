@@ -339,6 +339,9 @@ internal static class FloorBuilder
                     // In a labyrinth every floor tile touches a wall: there, and only there,
                     // a mob may stand against one.
                     List<Position> spots = MobSpots(grid, room, awayFromWalls: true);
+                    // TODO(tech-debt): a labyrinth is inferred (no tile clear of walls), not
+                    // declared — add an AllowsMobsAgainstWalls flag to the templates if another
+                    // kind of room ever falls back here.
                     if (spots.Count == 0)
                     {
                         spots = MobSpots(grid, room, awayFromWalls: false);

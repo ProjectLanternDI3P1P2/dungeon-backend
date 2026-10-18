@@ -37,6 +37,8 @@ public sealed class DungeonGenerator
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        // TODO(tech-debt): no older algorithm is kept, a run of another version answers 409 —
+        // keep the previous generator once runs must survive a version change.
         if (generatorVersion != CurrentVersion)
         {
             throw new UnsupportedGeneratorVersionException(generatorVersion, CurrentVersion);
