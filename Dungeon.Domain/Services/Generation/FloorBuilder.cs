@@ -319,15 +319,8 @@ internal static class FloorBuilder
             switch (room.Type)
             {
                 case RoomType.Boss:
+                    // The boss stands alone: defeating it is the fight that opens the gate.
                     Add(ElementType.Boss, room.SpotsOf(RoomTemplate.BossSpot)[0], room);
-
-                    // The grandest lairs post guards around their master: every enemy
-                    // spot the template lays down is manned, like its traps.
-                    foreach (Position guard in room.SpotsOf(RoomTemplate.EnemySpot))
-                    {
-                        Add(ElementType.Enemy, guard, room);
-                    }
-
                     break;
 
                 case RoomType.Treasure:

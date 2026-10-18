@@ -260,6 +260,20 @@ public class DungeonGeneratorRulesTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_LeavesTheBossAloneInItsRoom(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Assert: the boss is the fight that opens the gate, nobody stands before it.
+            floor
+                .Elements.Where(element => element.Type == ElementType.Enemy)
+                .Should()
+                .OnlyContain(element => floor.Rooms[element.RoomId].Type == RoomType.Combat);
+        }
+    }
+
     [Fact]
     public void Generate_FiftySeeds_PlacesEveryKindOfMob()
     {

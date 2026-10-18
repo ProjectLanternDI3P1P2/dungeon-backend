@@ -23,7 +23,8 @@ public sealed class DungeonGenerator
     /// room and leaves through the gate of the boss room. Water, lava and tombs.
     /// Version 5: every enemy silhouette has a kind (zombie, mage, goblin, bat), drawn from
     /// its own stream.
-    /// Version 6: no loot in combat rooms, Reward decides what a fight drops.
+    /// Version 6: no loot in combat rooms, Reward decides what a fight drops; the boss stands
+    /// alone in its room.
     /// </remarks>
     public const int CurrentVersion = 6;
 
