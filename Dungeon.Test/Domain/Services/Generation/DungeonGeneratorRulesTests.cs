@@ -274,6 +274,70 @@ public class DungeonGeneratorRulesTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_KeepsMobsAwayFromDoorsAndWalls(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Arrange
+            List<Position> doors = [.. DungeonTestData.PositionsOf(floor, CellType.Door)];
+
+            foreach (DungeonElement mob in floor.Elements.Where(e => e.Type == ElementType.Enemy))
+            {
+                // Assert: entering a room never starts a fight.
+                doors.Should().OnlyContain(door => door.DistanceTo(mob.Position) > 2);
+
+                // A mob has room to move, unless every floor tile of its room touches a
+                // wall (the labyrinths).
+                if (HasATileClearOfWalls(floor, floor.Rooms[mob.RoomId]))
+                {
+                    TouchesAWall(floor, mob.Position).Should().BeFalse();
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_LetsMobsTouchTheWallsOfALabyrinthOnly(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Assert: a mob stands against a wall only where no tile is clear of them.
+            floor
+                .Elements.Where(element =>
+                    element.Type == ElementType.Enemy && TouchesAWall(floor, element.Position)
+                )
+                .Should()
+                .OnlyContain(element => !HasATileClearOfWalls(floor, floor.Rooms[element.RoomId]));
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_KeepsTheMobsOfARoomThreeTilesApart(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            foreach (
+                IGrouping<int, DungeonElement> room in floor
+                    .Elements.Where(element => element.Type == ElementType.Enemy)
+                    .GroupBy(element => element.RoomId)
+            )
+            {
+                // Assert: one to four packs, each its own silhouette.
+                room.Count().Should().BeInRange(1, 4);
+                room.SelectMany(first =>
+                        room.Where(second => second.Id > first.Id)
+                            .Select(second => first.Position.DistanceTo(second.Position))
+                    )
+                    .Should()
+                    .OnlyContain(distance => distance >= 3);
+            }
+        }
+    }
+
     [Fact]
     public void Generate_FiftySeeds_PlacesEveryKindOfMob()
     {
@@ -399,6 +463,23 @@ public class DungeonGeneratorRulesTests
 
         return false;
     }
+
+    private static bool TouchesAWall(DungeonFloor floor, Position tile) =>
+        Neighbours(tile).Any(next => floor.Contains(next) && floor.GetCell(next) == CellType.Wall);
+
+    private static bool HasATileClearOfWalls(DungeonFloor floor, Room room) =>
+        Enumerable
+            .Range(room.Interior.Y, room.Interior.Height)
+            .SelectMany(y =>
+                Enumerable.Range(room.Interior.X, room.Interior.Width).Select(x => new Position(x, y))
+            )
+            .Any(tile => floor.GetCell(tile) == CellType.Floor && !TouchesAWall(floor, tile));
+
+    private static IEnumerable<Position> Neighbours(Position tile) =>
+        from dy in Enumerable.Range(-1, 3)
+        from dx in Enumerable.Range(-1, 3)
+        where dx != 0 || dy != 0
+        select new Position(tile.X + dx, tile.Y + dy);
 
     private static int CountWalkableTiles(DungeonFloor floor)
     {

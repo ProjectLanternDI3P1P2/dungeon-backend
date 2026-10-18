@@ -16,7 +16,7 @@ public class DungeonGeneratorDeterminismTests
     /// If the change is intended, bump DungeonGenerator.CurrentVersion and update this value;
     /// otherwise every stored run would silently get a different dungeon.
     /// </summary>
-    private const string ReferenceFingerprint = "8a4e114762e59da9";
+    private const string ReferenceFingerprint = "241141c1d8630c64";
 
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]

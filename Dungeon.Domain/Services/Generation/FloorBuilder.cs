@@ -25,6 +25,12 @@ internal static class FloorBuilder
     private const int MaximumEnemiesPerRoom = 4;
     private const int ExtraEnemyChancePercent = 35;
 
+    /// <summary>A mob stands farther than this from every door: entering never starts a fight.</summary>
+    private const int DoorClearance = 2;
+
+    /// <summary>The fewest tiles between two mobs of a room, so each pack is its own silhouette.</summary>
+    private const int MobSpacing = 3;
+
     private static readonly EnemyKind[] EnemyKinds = Enum.GetValues<EnemyKind>();
 
     public static DungeonFloor Build(
@@ -53,7 +59,7 @@ internal static class FloorBuilder
         }
 
         List<DungeonElement> elements = PlaceElements(
-            DeterministicRandom.ForStream(seed, RandomStream.Content, floorIndex),
+            grid,
             DeterministicRandom.ForStream(seed, RandomStream.Mobs, floorIndex),
             rooms
         );
@@ -282,7 +288,7 @@ internal static class FloorBuilder
     }
 
     private static List<DungeonElement> PlaceElements(
-        DeterministicRandom random,
+        TileGrid grid,
         DeterministicRandom mobs,
         List<RoomDraft> rooms
     )
@@ -290,8 +296,6 @@ internal static class FloorBuilder
         List<DungeonElement> elements = [];
         int maxDepth = Math.Max(1, rooms.Max(room => room.Depth));
 
-        // The kind of a silhouette comes from its own stream: drawing it leaves every
-        // position, trap and loot of the seed where it was.
         void Add(ElementType type, Position position, RoomDraft room) =>
             elements.Add(
                 new DungeonElement(
@@ -332,20 +336,37 @@ internal static class FloorBuilder
                     break;
 
                 case RoomType.Combat:
-                    List<Position> spots = [.. room.SpotsOf(RoomTemplate.EnemySpot)];
-                    random.Shuffle(spots);
+                    // In a labyrinth every floor tile touches a wall: there, and only there,
+                    // a mob may stand against one.
+                    List<Position> spots = MobSpots(grid, room, awayFromWalls: true);
+                    if (spots.Count == 0)
+                    {
+                        spots = MobSpots(grid, room, awayFromWalls: false);
+                    }
+
+                    mobs.Shuffle(spots);
 
                     // Difficulty grows with the distance from the start room.
                     int enemyCount = Math.Min(
-                        Math.Min(MaximumEnemiesPerRoom, spots.Count),
+                        MaximumEnemiesPerRoom,
                         1
                             + room.Depth * 2 / maxDepth
-                            + (random.Chance(ExtraEnemyChancePercent) ? 1 : 0)
+                            + (mobs.Chance(ExtraEnemyChancePercent) ? 1 : 0)
                     );
 
-                    foreach (Position spot in spots.Take(enemyCount))
+                    List<Position> placed = [];
+                    foreach (Position spot in spots)
                     {
-                        Add(ElementType.Enemy, spot, room);
+                        if (placed.Count == enemyCount)
+                        {
+                            break;
+                        }
+
+                        if (placed.All(other => other.DistanceTo(spot) >= MobSpacing))
+                        {
+                            placed.Add(spot);
+                            Add(ElementType.Enemy, spot, room);
+                        }
                     }
 
                     break;
@@ -357,6 +378,67 @@ internal static class FloorBuilder
         }
 
         return elements;
+    }
+
+    /// <summary>
+    /// Where a mob may stand in a room, in reading order: a plain floor tile without a trap,
+    /// more than <see cref="DoorClearance"/> tiles from every door of the room and, when
+    /// <paramref name="awayFromWalls"/>, with no wall among its eight neighbours. The
+    /// generator picks them, not the templates.
+    /// </summary>
+    private static List<Position> MobSpots(TileGrid grid, RoomDraft room, bool awayFromWalls)
+    {
+        RoomBounds inside = room.Interior;
+        List<Position> doors = [];
+        for (int y = inside.Y - 1; y <= inside.Bottom + 1; y++)
+        {
+            for (int x = inside.X - 1; x <= inside.Right + 1; x++)
+            {
+                if (grid.Contains(x, y) && grid[x, y] == CellType.Door)
+                {
+                    doors.Add(new Position(x, y));
+                }
+            }
+        }
+
+        List<Position> traps = room.SpotsOf(RoomTemplate.TrapSpot);
+        List<Position> spots = [];
+        for (int y = inside.Y; y <= inside.Bottom; y++)
+        {
+            for (int x = inside.X; x <= inside.Right; x++)
+            {
+                Position tile = new(x, y);
+                if (
+                    grid[x, y] == CellType.Floor
+                    && !traps.Contains(tile)
+                    && !(awayFromWalls && NextToAWall(grid, tile))
+                    && doors.All(door => door.DistanceTo(tile) > DoorClearance)
+                )
+                {
+                    spots.Add(tile);
+                }
+            }
+        }
+
+        return spots;
+    }
+
+    private static bool NextToAWall(TileGrid grid, Position tile)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                int x = tile.X + dx;
+                int y = tile.Y + dy;
+                if (grid.Contains(x, y) && grid[x, y] == CellType.Wall)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static bool TouchesInside(TileGrid grid, int x, int y)
