@@ -1,4 +1,5 @@
 using Dungeon.Application.Ports;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Services;
 using Dungeon.Domain.Services.Generation;
 using Dungeon.Domain.ValueObjects;
@@ -53,9 +54,16 @@ public static class InfrastructureServiceRegistration
         // service at startup instead of failing on the first exploration.
         DungeonSettings settings = new(options.RoomCount, options.FloorCount);
 
+        // TODO(tech-debt): the mob rules are read at every turn, not stored in the run — snapshot
+        // them per run if a balance change must not touch the runs in progress.
+        MobRules mobRules = (
+            configuration.GetSection(MobOptions.SectionName).Get<MobOptions>() ?? new MobOptions()
+        ).ToRules();
+
         return services
             .AddSingleton(Options.Create(options))
             .AddSingleton(settings)
+            .AddSingleton(mobRules)
             .AddSingleton<DungeonGenerator>()
             .AddSingleton<IDungeonProvider, CachedDungeonProvider>()
             .AddSingleton<ISeedGenerator, CryptoSeedGenerator>();
