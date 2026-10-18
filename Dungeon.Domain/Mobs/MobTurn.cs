@@ -1,5 +1,6 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
+using Dungeon.Domain.Services.Randomness;
 using Dungeon.Domain.ValueObjects;
 
 namespace Dungeon.Domain.Mobs;
@@ -36,18 +37,29 @@ internal static class MobTurn
         foreach (RunMob mob in active)
         {
             MobBehaviour behaviour = rules.For(mob.Kind);
-            if (behaviour.ActsOn(mob.Tick) && mob.IsAggro)
+            bool diagonal = behaviour.Step == MobStep.Diagonal;
+            if (!behaviour.ActsOn(mob.Tick))
             {
-                switch (behaviour.Step)
-                {
-                    case MobStep.Orthogonal:
-                        Chase(mob, floor, walking, diagonal: false, IsFree);
-                        break;
-                    case MobStep.Diagonal:
-                        flying ??= DistanceField.From(floor, hero, diagonal: true);
-                        Chase(mob, floor, flying, diagonal: true, IsFree);
-                        break;
-                }
+                // Its cadence lets it rest this turn.
+            }
+            else if (mob.IsAggro && behaviour.Step != MobStep.Teleport)
+            {
+                DistanceField field = diagonal
+                    ? flying ??= DistanceField.From(floor, hero, diagonal: true)
+                    : walking;
+                Chase(mob, floor, field, diagonal, IsFree);
+            }
+            else if (!mob.IsAggro && behaviour.Idle == MobIdle.Wander)
+            {
+                Wander(mob, run, floor, rules.WanderRadius, diagonal, IsFree);
+            }
+            else if (
+                !mob.IsAggro
+                && behaviour.Idle == MobIdle.NearestDoor
+                && run.DiscoveredRoomIds.Contains(mob.HomeRoomId)
+            )
+            {
+                HoldTheNearestDoor(mob, floor, IsFree);
             }
 
             mob.NextTick();
@@ -76,6 +88,111 @@ internal static class MobTurn
             {
                 run.Discover(doorRoom);
             }
+        }
+    }
+
+    /// <summary>
+    /// Back toward the centre of its room while farther than the wander radius, otherwise a
+    /// random step, or none, without leaving the room.
+    /// </summary>
+    private static void Wander(
+        RunMob mob,
+        DungeonRun run,
+        DungeonFloor floor,
+        int radius,
+        bool diagonal,
+        Func<Position, bool> isFree
+    )
+    {
+        bool InItsRoom(Position tile) => floor.GetRoomId(tile) == mob.HomeRoomId;
+        Position centre = floor.Rooms[mob.HomeRoomId].Center;
+
+        if (mob.Position.DistanceTo(centre) > radius)
+        {
+            DistanceField towardCentre = DistanceField.From(floor, centre, diagonal, InItsRoom);
+            Chase(mob, floor, towardCentre, diagonal, isFree);
+            return;
+        }
+
+        List<Position?> choices =
+        [
+            null,
+            .. DistanceField
+                .Neighbours(floor, mob.Position, diagonal, InItsRoom)
+                .Where(isFree)
+                .Select(tile => (Position?)tile),
+        ];
+        DeterministicRandom random = DeterministicRandom.ForMobTurn(
+            run.Seed,
+            run.CurrentFloor,
+            run.Turn,
+            mob.ElementId
+        );
+        if (random.Pick(choices) is Position step)
+        {
+            mob.MoveTo(step);
+        }
+    }
+
+    /// <summary>
+    /// Heads for the door of its room nearest to it (ties: reading order) and stands on it.
+    /// </summary>
+    private static void HoldTheNearestDoor(
+        RunMob mob,
+        DungeonFloor floor,
+        Func<Position, bool> isFree
+    )
+    {
+        bool InItsRoomOrDoor(Position tile) =>
+            floor.GetRoomId(tile) == mob.HomeRoomId || floor.GetCell(tile) == CellType.Door;
+
+        if (mob.Door is not Position door)
+        {
+            RoomBounds inside = floor.Rooms[mob.HomeRoomId].Interior;
+            DistanceField fromMob = DistanceField.From(
+                floor,
+                mob.Position,
+                diagonal: false,
+                InItsRoomOrDoor
+            );
+            Position? nearest = null;
+            int nearestSteps = int.MaxValue;
+            for (int y = inside.Y - 1; y <= inside.Bottom + 1; y++)
+            {
+                for (int x = inside.X - 1; x <= inside.Right + 1; x++)
+                {
+                    Position tile = new(x, y);
+                    if (
+                        floor.Contains(tile)
+                        && floor.GetCell(tile) == CellType.Door
+                        && fromMob.To(tile) is int steps
+                        && steps < nearestSteps
+                    )
+                    {
+                        nearest = tile;
+                        nearestSteps = steps;
+                    }
+                }
+            }
+
+            if (nearest is not Position found)
+            {
+                return;
+            }
+
+            mob.TargetDoor(found);
+            door = found;
+        }
+
+        if (mob.Position != door)
+        {
+            DistanceField towardDoor = DistanceField.From(
+                floor,
+                door,
+                diagonal: false,
+                InItsRoomOrDoor
+            );
+            Chase(mob, floor, towardDoor, diagonal: false, isFree);
         }
     }
 
