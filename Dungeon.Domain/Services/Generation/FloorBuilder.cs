@@ -24,7 +24,6 @@ internal static class FloorBuilder
 
     private const int MaximumEnemiesPerRoom = 4;
     private const int ExtraEnemyChancePercent = 35;
-    private const int CombatLootChancePercent = 25;
 
     private static readonly EnemyKind[] EnemyKinds = Enum.GetValues<EnemyKind>();
 
@@ -354,11 +353,6 @@ internal static class FloorBuilder
                     foreach (Position spot in spots.Take(enemyCount))
                     {
                         Add(ElementType.Enemy, spot, room);
-                    }
-
-                    if (random.Chance(CombatLootChancePercent) && spots.Count > enemyCount)
-                    {
-                        Add(ElementType.Item, spots[enemyCount], room);
                     }
 
                     break;

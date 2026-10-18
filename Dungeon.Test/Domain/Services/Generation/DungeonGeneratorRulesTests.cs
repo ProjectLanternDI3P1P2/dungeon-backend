@@ -246,6 +246,20 @@ public class DungeonGeneratorRulesTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
+    public void Generate_AnySeed_PutsItemsInTreasureRoomsOnly(ulong seedValue)
+    {
+        foreach (DungeonFloor floor in DungeonTestData.Generate(new Seed(seedValue)).Floors)
+        {
+            // Assert: what a fight drops is Reward's decision, not a tile of the map.
+            floor
+                .Elements.Where(element => element.Type == ElementType.Item)
+                .Should()
+                .OnlyContain(element => floor.Rooms[element.RoomId].Type == RoomType.Treasure);
+        }
+    }
+
     [Fact]
     public void Generate_FiftySeeds_PlacesEveryKindOfMob()
     {
