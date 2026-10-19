@@ -36,6 +36,20 @@ public sealed class CreateDungeonRunCommandHandler(
             return;
         }
 
+        // A game session explores one dungeon (ADR-GLOB-011). Player may start it again
+        // under another idempotency key, after losing the answer to the first call: the
+        // run already started is kept, and the caller reads it back by game session.
+        if (
+            await dungeonRunRepository.FindByGameSessionIdAsync(
+                request.GameSessionId,
+                cancellationToken
+            )
+            is not null
+        )
+        {
+            return;
+        }
+
         (Seed seed, DungeonSettings settings, int generatorVersion) = request.Seed is null
             ? (
                 await DrawUnusedSeedAsync(cancellationToken),

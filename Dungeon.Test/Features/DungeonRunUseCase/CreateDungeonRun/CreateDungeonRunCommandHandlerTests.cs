@@ -140,6 +140,35 @@ public class CreateDungeonRunCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_SessionAlreadyHasARun_StartsNoOtherRun()
+    {
+        // Arrange: Player starts the session again under another idempotency key.
+        DungeonRun existing = StartRun(DungeonTestData.ReferenceSeed, DungeonSettings.Default);
+        _dungeonRunRepositoryMock
+            .Setup(repository =>
+                repository.FindByGameSessionIdAsync(
+                    existing.GameSessionId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(existing);
+
+        // Act
+        await _handler.Handle(
+            new CreateDungeonRunCommand(Guid.NewGuid(), existing.GameSessionId, null),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        _dungeonRunRepositoryMock.Verify(
+            repository =>
+                repository.AddAsync(It.IsAny<DungeonRun>(), It.IsAny<CancellationToken>()),
+            Times.Never
+        );
+        _seedGeneratorMock.Verify(generator => generator.NewSeed(), Times.Never);
+    }
+
+    [Fact]
     public async Task Handle_RunIdTakenByAnotherSession_ThrowsConflict()
     {
         // Arrange

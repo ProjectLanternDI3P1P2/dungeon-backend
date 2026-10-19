@@ -1,4 +1,5 @@
 using Dungeon.Application.Models;
+using Dungeon.Domain.Entities;
 
 namespace Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 
@@ -24,4 +25,30 @@ public sealed class GetDungeonRunByIdResult
     public IReadOnlyList<DungeonElementResult> ElementsHere { get; init; } = [];
 
     public DateTimeOffset StartedAt { get; init; }
+
+    /// <param name="dungeon">The dungeon of the run, rebuilt from its seed.</param>
+    public static GetDungeonRunByIdResult From(DungeonRun run, GeneratedDungeon dungeon)
+    {
+        DungeonFloor floor = dungeon.Floors[run.CurrentFloor];
+
+        return new GetDungeonRunByIdResult
+        {
+            Id = run.Id,
+            GameSessionId = run.GameSessionId,
+            Seed = run.Seed.ToString(),
+            GeneratorVersion = run.GeneratorVersion,
+            Status = DungeonContract.Name(run.Status),
+            FloorCount = run.FloorCount,
+            CurrentFloor = run.CurrentFloor,
+            Hero = PositionResult.From(run.HeroPosition),
+            Turn = run.Turn,
+            FloorBossDefeated = run.IsFloorBossDefeated,
+            CurrentRoomId = floor.GetRoomId(run.HeroPosition),
+            ElementsHere = floor
+                .GetElementsAt(run.HeroPosition)
+                .Select(DungeonElementResult.From)
+                .ToList(),
+            StartedAt = run.StartedAt,
+        };
+    }
 }

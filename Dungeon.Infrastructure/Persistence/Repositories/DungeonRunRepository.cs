@@ -24,6 +24,18 @@ public sealed class DungeonRunRepository(DungeonDbContext dbContext) : IDungeonR
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<DungeonRun?> FindByGameSessionIdAsync(
+        Guid gameSessionId,
+        CancellationToken cancellationToken
+    )
+    {
+        return await dbContext
+            .DungeonRuns.AsNoTracking()
+            .Where(run => run.GameSessionId == gameSessionId)
+            .OrderByDescending(run => run.StartedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task AddAsync(DungeonRun dungeonRun, CancellationToken cancellationToken)
     {
         await dbContext.DungeonRuns.AddAsync(dungeonRun, cancellationToken);
