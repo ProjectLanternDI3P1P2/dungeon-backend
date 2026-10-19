@@ -196,7 +196,7 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
             loaded.DefeatFloorBoss(dungeon);
             Position gate = DungeonTestData.PositionsOf(floor, CellType.Gate).Single();
             DungeonTestData.WalkTo(loaded, dungeon, gate.Step(Direction.South));
-            loaded.MoveHero(Direction.North, dungeon);
+            loaded.MoveHero(Direction.North, dungeon, MobRules.Default);
             await context.SaveChangesAsync(cancellation);
         }
 

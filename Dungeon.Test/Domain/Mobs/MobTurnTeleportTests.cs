@@ -1,5 +1,6 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
 using FluentAssertions;
@@ -38,10 +39,10 @@ public class MobTurnTeleportTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
-        run.MoveHero(Direction.East, dungeon);
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
         bool aggroBeforeTheDoor = Mage(run).IsAggro;
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         aggroBeforeTheDoor.Should().BeFalse();
@@ -62,7 +63,7 @@ public class MobTurnTeleportTests
         // Act
         for (int turn = 0; turn < 6; turn++)
         {
-            run.MoveHero(Pace(turn), dungeon);
+            run.MoveHero(Pace(turn), dungeon, MobRules.Default);
         }
 
         // Assert
@@ -77,12 +78,12 @@ public class MobTurnTeleportTests
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H.........m");
 
         // Act
-        run.MoveHero(Pace(0), dungeon);
+        run.MoveHero(Pace(0), dungeon, MobRules.Default);
         Position? afterFirst = Mage(run).Teleport;
-        run.MoveHero(Pace(1), dungeon);
+        run.MoveHero(Pace(1), dungeon, MobRules.Default);
         Position? announced = Mage(run).Teleport;
         Position before = Mage(run).Position;
-        run.MoveHero(Pace(2), dungeon);
+        run.MoveHero(Pace(2), dungeon, MobRules.Default);
 
         // Assert: three steps toward the hero, announced on the turn before the jump.
         afterFirst.Should().BeNull();
@@ -103,8 +104,8 @@ public class MobTurnTeleportTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act: the hero paces, the mage announces on the second turn.
-        run.MoveHero(Direction.East, dungeon);
-        run.MoveHero(Direction.West, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
+        run.MoveHero(Direction.West, dungeon, MobRules.Default);
 
         // Assert: three diagonal steps, two tiles from the hero.
         Mage(run).Teleport.Should().Be(new Position(2, 2));
@@ -115,12 +116,12 @@ public class MobTurnTeleportTests
     {
         // Arrange: the mage announces the tile right in front of the hero.
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H.....m");
-        run.MoveHero(Direction.East, dungeon);
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
         Position? announced = Mage(run).Teleport;
 
         // Act: the hero walks into the glow.
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert: a contact, like standing next to it; it never re-announces.
         announced.Should().Be(new Position(4, 1));
@@ -138,7 +139,7 @@ public class MobTurnTeleportTests
         for (int turn = 0; turn < 9; turn++)
         {
             // Act
-            run.MoveHero(Pace(turn), dungeon);
+            run.MoveHero(Pace(turn), dungeon, MobRules.Default);
 
             // Assert: the hero may walk onto the announced tile, the mage never lands there.
             Mage(run).Position.Should().NotBe(run.HeroPosition);

@@ -95,16 +95,10 @@ public sealed class DungeonRun
     /// Moves the hero exactly one tile. Walls, obstacles, the void, anything outside the floor
     /// and the gate of a boss still standing are rejected; the run is left unchanged when a
     /// move is refused. Walking into the open gate takes the party down: the hero arrives at
-    /// the entrance of the next floor.
+    /// the entrance of the next floor. Once the hero has moved, the mobs of the floor take
+    /// their turn.
     /// </summary>
     /// <returns>Where the hero stands after the move, on the current floor.</returns>
-    public Position MoveHero(Direction direction, GeneratedDungeon dungeon)
-    {
-        return MoveHero(direction, dungeon, MobRules.Default);
-    }
-
-    /// <inheritdoc cref="MoveHero(Direction, GeneratedDungeon)"/>
-    /// <remarks>Once the hero has moved, the mobs of the floor take their turn.</remarks>
     public Position MoveHero(Direction direction, GeneratedDungeon dungeon, MobRules mobRules)
     {
         DungeonFloor floor = GetCurrentFloor(dungeon);
@@ -211,10 +205,6 @@ public sealed class DungeonRun
         return dungeon.Floors[CurrentFloor];
     }
 
-    /// <summary>
-    /// The mobs of the floor the party arrives on take over from those of the floor above:
-    /// one per enemy element, on its spawn tile. Only the arrival room is discovered.
-    /// </summary>
     internal void Discover(int roomId)
     {
         if (!_discoveredRoomIds.Contains(roomId))
@@ -223,6 +213,10 @@ public sealed class DungeonRun
         }
     }
 
+    /// <summary>
+    /// The mobs of the floor the party arrives on take over from those of the floor above:
+    /// one per enemy element, on its spawn tile. Only the arrival room is discovered.
+    /// </summary>
     private void ArriveOn(DungeonFloor floor)
     {
         _mobs.Clear();

@@ -1,5 +1,6 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
 using FluentAssertions;
@@ -38,7 +39,11 @@ public class MobTurnIdleTests
     {
         for (int turn = 0; turn < turns; turn++)
         {
-            run.MoveHero(turn % 2 == 0 ? Direction.South : Direction.North, dungeon);
+            run.MoveHero(
+                turn % 2 == 0 ? Direction.South : Direction.North,
+                dungeon,
+                MobRules.Default
+            );
         }
     }
 
@@ -71,7 +76,11 @@ public class MobTurnIdleTests
         // Act
         for (int turn = 0; turn < 50; turn++)
         {
-            run.MoveHero(turn % 2 == 0 ? Direction.South : Direction.North, dungeon);
+            run.MoveHero(
+                turn % 2 == 0 ? Direction.South : Direction.North,
+                dungeon,
+                MobRules.Default
+            );
             visited.Add(run.Mobs[0].Position);
         }
 
@@ -102,12 +111,16 @@ public class MobTurnIdleTests
         (DungeonRun run, GeneratedDungeon dungeon) = TwoRooms('g', new Position(17, 2));
 
         // Act: the hero stands on the west door, discovering the room, then paces.
-        run.MoveHero(Direction.East, dungeon);
-        run.MoveHero(Direction.East, dungeon);
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
         for (int turn = 0; turn < 6; turn++)
         {
-            run.MoveHero(turn % 2 == 0 ? Direction.West : Direction.East, dungeon);
+            run.MoveHero(
+                turn % 2 == 0 ? Direction.West : Direction.East,
+                dungeon,
+                MobRules.Default
+            );
         }
 
         // Assert
@@ -130,8 +143,8 @@ public class MobTurnIdleTests
         foreach (Direction direction in path.Take(30))
         {
             // Act
-            first.MoveHero(direction, dungeon);
-            second.MoveHero(direction, dungeon);
+            first.MoveHero(direction, dungeon, MobRules.Default);
+            second.MoveHero(direction, dungeon, MobRules.Default);
 
             // Assert
             second

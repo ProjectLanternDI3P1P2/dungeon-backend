@@ -1,5 +1,6 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
 using FluentAssertions;
@@ -61,7 +62,7 @@ public class DungeonRunMobsTests
         DungeonTestData.WalkTo(run, dungeon, gate.Step(Direction.South));
 
         // Act
-        run.MoveHero(Direction.North, dungeon);
+        run.MoveHero(Direction.North, dungeon, MobRules.Default);
 
         // Assert
         run.CurrentFloor.Should().Be(1);

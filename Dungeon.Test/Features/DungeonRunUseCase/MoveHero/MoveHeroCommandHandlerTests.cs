@@ -94,10 +94,10 @@ public class MoveHeroCommandHandlerTests
         // Arrange: walk west from the centre of the start room until something blocks the way.
         DungeonFloor floor = _dungeon.Floors[0];
         WalkToTheCentreOfTheStartRoom();
-        _run.MoveHero(Direction.North, _dungeon);
+        _run.MoveHero(Direction.North, _dungeon, MobRules.Default);
         while (floor.IsWalkable(_run.HeroPosition.Step(Direction.West)))
         {
-            _run.MoveHero(Direction.West, _dungeon);
+            _run.MoveHero(Direction.West, _dungeon, MobRules.Default);
         }
 
         Position before = _run.HeroPosition;
@@ -164,7 +164,7 @@ public class MoveHeroCommandHandlerTests
         DungeonFloor floor = _dungeon.Floors[_run.CurrentFloor];
         foreach (Direction direction in DungeonTestData.FindPath(floor, _run.HeroPosition, target)!)
         {
-            _run.MoveHero(direction, _dungeon);
+            _run.MoveHero(direction, _dungeon, MobRules.Default);
         }
     }
 }

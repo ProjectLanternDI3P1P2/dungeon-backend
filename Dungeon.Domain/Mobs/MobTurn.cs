@@ -64,13 +64,12 @@ internal static class MobTurn
                     : walking;
                 Chase(mob, floor, field, diagonal, IsFree);
             }
-            else if (!mob.IsAggro && behaviour.Idle == MobIdle.Wander)
+            else if (behaviour.Idle == MobIdle.Wander)
             {
                 Wander(mob, run, floor, rules.WanderRadius, diagonal, IsFree);
             }
             else if (
-                !mob.IsAggro
-                && behaviour.Idle == MobIdle.NearestDoor
+                behaviour.Idle == MobIdle.NearestDoor
                 && run.DiscoveredRoomIds.Contains(mob.HomeRoomId)
             )
             {

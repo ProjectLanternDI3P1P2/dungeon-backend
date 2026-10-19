@@ -1,5 +1,6 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
 using FluentAssertions;
@@ -32,7 +33,7 @@ public class MobTurnChaseTests
         List<int> xs = [];
         for (int turn = 0; turn < turns; turn++)
         {
-            run.MoveHero(direction, dungeon);
+            run.MoveHero(direction, dungeon, MobRules.Default);
             xs.Add(run.Mobs[0].X);
         }
 
@@ -46,7 +47,7 @@ public class MobTurnChaseTests
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H..........z");
 
         // Act
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         run.Mobs[0].IsAggro.Should().BeTrue();
@@ -60,7 +61,7 @@ public class MobTurnChaseTests
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H...........z");
 
         // Act
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         run.Mobs[0].IsAggro.Should().BeFalse();
@@ -91,7 +92,7 @@ public class MobTurnChaseTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act: 4 steps away once the hero moves south, two across and two down.
-        run.MoveHero(Direction.South, dungeon);
+        run.MoveHero(Direction.South, dungeon, MobRules.Default);
 
         // Assert: one diagonal step closes both gaps at once.
         run.Mobs[0].Position.Should().Be(new Position(2, 3));
@@ -117,7 +118,7 @@ public class MobTurnChaseTests
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor("..........H...g.");
 
         // Act
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
         int first = run.Mobs[0].X;
         List<int> next = XsWhileMoving(run, dungeon, Direction.West, 2);
 
@@ -141,7 +142,7 @@ public class MobTurnChaseTests
         Direction[] moves = [Direction.East, Direction.West, Direction.East, Direction.West];
         foreach (Direction move in moves)
         {
-            run.MoveHero(move, dungeon);
+            run.MoveHero(move, dungeon, MobRules.Default);
         }
 
         // Assert: through the door into the hero's room.
@@ -155,7 +156,7 @@ public class MobTurnChaseTests
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor(".H.mz");
 
         // Act
-        run.MoveHero(Direction.West, dungeon);
+        run.MoveHero(Direction.West, dungeon, MobRules.Default);
 
         // Assert
         RunMob zombie = run.Mobs.Single(mob => mob.Kind == EnemyKind.Zombie);
@@ -170,7 +171,7 @@ public class MobTurnChaseTests
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H.tz");
 
         // Act
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         run.Mobs[0].Position.Should().Be(new Position(3, 1));

@@ -1,6 +1,7 @@
 using System.Text;
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Services.Generation;
 using Dungeon.Domain.Services.Randomness;
 using Dungeon.Domain.ValueObjects;
@@ -185,7 +186,7 @@ public static class DungeonTestData
         DungeonFloor floor = dungeon.Floors[run.CurrentFloor];
         foreach (Direction direction in FindPath(floor, run.HeroPosition, target)!)
         {
-            run.MoveHero(direction, dungeon);
+            run.MoveHero(direction, dungeon, MobRules.Default);
         }
     }
 

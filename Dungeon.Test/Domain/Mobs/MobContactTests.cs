@@ -1,6 +1,7 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Exceptions;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
 using FluentAssertions;
@@ -29,7 +30,7 @@ public class MobContactTests
         (DungeonRun run, GeneratedDungeon dungeon) = Room("H....", ".....", "..z..");
 
         // Act: the zombie steps next to the hero, diagonally.
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert: it died where it stepped, on this very turn.
         run.Mobs[0].Position.Should().Be(new Position(3, 2));
@@ -42,12 +43,12 @@ public class MobContactTests
     {
         // Arrange
         (DungeonRun run, GeneratedDungeon dungeon) = Room("H....", ".....", "..z..");
-        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
         Position where = run.Mobs[0].Position;
 
         // Act
-        run.MoveHero(Direction.South, dungeon);
-        run.MoveHero(Direction.South, dungeon);
+        run.MoveHero(Direction.South, dungeon, MobRules.Default);
+        run.MoveHero(Direction.South, dungeon, MobRules.Default);
 
         // Assert
         run.Mobs[0].IsActive.Should().BeFalse();
@@ -61,7 +62,7 @@ public class MobContactTests
         (DungeonRun run, GeneratedDungeon dungeon) = Room("Hz...");
 
         // Act
-        Action act = () => run.MoveHero(Direction.East, dungeon);
+        Action act = () => run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         act.Should().Throw<InvalidMoveException>();
