@@ -1,6 +1,7 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Exceptions;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Services.Randomness;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
@@ -42,7 +43,7 @@ public class DungeonRunTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
-        Position reached = run.MoveHero(Direction.East, dungeon);
+        Position reached = run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         reached.Should().Be(new Position(1, 0));
@@ -63,7 +64,7 @@ public class DungeonRunTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
-        Action act = () => run.MoveHero(Direction.East, dungeon);
+        Action act = () => run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         act.Should().Throw<InvalidMoveException>().Which.Target.Should().Be(new Position(1, 0));
@@ -82,7 +83,7 @@ public class DungeonRunTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
-        Action act = () => run.MoveHero(direction, dungeon);
+        Action act = () => run.MoveHero(direction, dungeon, MobRules.Default);
 
         // Assert
         act.Should().Throw<InvalidMoveException>().WithMessage("*outside the dungeon*");
@@ -97,7 +98,7 @@ public class DungeonRunTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // One row below the ladder, off the centre row, where the side doors sit.
-        run.MoveHero(Direction.South, dungeon);
+        run.MoveHero(Direction.South, dungeon, MobRules.Default);
 
         // Act
         int steps = 0;
@@ -105,7 +106,7 @@ public class DungeonRunTests
         {
             while (true)
             {
-                run.MoveHero(Direction.West, dungeon);
+                run.MoveHero(Direction.West, dungeon, MobRules.Default);
                 steps++;
             }
         };
@@ -139,7 +140,7 @@ public class DungeonRunTests
                 && floor.GetCell(before.Step(direction)) != CellType.Gate;
 
             // Act
-            Action act = () => run.MoveHero(direction, dungeon);
+            Action act = () => run.MoveHero(direction, dungeon, MobRules.Default);
 
             // Assert
             if (expectedToSucceed)
@@ -166,7 +167,7 @@ public class DungeonRunTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
-        Action act = () => run.MoveHero(Direction.East, otherDungeon);
+        Action act = () => run.MoveHero(Direction.East, otherDungeon, MobRules.Default);
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -180,7 +181,7 @@ public class DungeonRunTests
         DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
 
         // Act
-        Action act = () => run.MoveHero(Direction.East, dungeon);
+        Action act = () => run.MoveHero(Direction.East, dungeon, MobRules.Default);
 
         // Assert
         act.Should().Throw<InvalidMoveException>().WithMessage("*boss*");
@@ -201,7 +202,7 @@ public class DungeonRunTests
         int turn = run.Turn;
 
         // Act
-        Position reached = run.MoveHero(Direction.North, dungeon);
+        Position reached = run.MoveHero(Direction.North, dungeon, MobRules.Default);
 
         // Assert: through the entrance door of the next floor, whose boss still stands.
         run.CurrentFloor.Should().Be(1);
@@ -244,19 +245,13 @@ public class DungeonRunTests
 
         // Assert
         run.Status.Should().Be(DungeonRunStatus.Won);
-        Action move = () => run.MoveHero(Direction.North, dungeon);
+        Action move = () => run.MoveHero(Direction.North, dungeon, MobRules.Default);
         move.Should().Throw<DungeonRunNotActiveException>();
     }
 
     private static Position BossOf(DungeonFloor floor) =>
         floor.Elements.Single(element => element.Type == ElementType.Boss).Position;
 
-    private static void WalkTo(DungeonRun run, GeneratedDungeon dungeon, Position target)
-    {
-        DungeonFloor floor = dungeon.Floors[run.CurrentFloor];
-        foreach (Direction direction in DungeonTestData.FindPath(floor, run.HeroPosition, target)!)
-        {
-            run.MoveHero(direction, dungeon);
-        }
-    }
+    private static void WalkTo(DungeonRun run, GeneratedDungeon dungeon, Position target) =>
+        DungeonTestData.WalkTo(run, dungeon, target);
 }

@@ -24,6 +24,12 @@ public sealed class GetDungeonRunByIdResult
     /// <summary>Elements on the hero's tile: an enemy there is where Combat takes over.</summary>
     public IReadOnlyList<DungeonElementResult> ElementsHere { get; init; } = [];
 
+    /// <summary>The living mobs of the current floor, in element order.</summary>
+    public IReadOnlyList<MobResult> Mobs { get; init; } = [];
+
+    /// <summary>The mobs that died on this turn, on the tile they fell on.</summary>
+    public IReadOnlyList<MobResult> KilledMobs { get; init; } = [];
+
     public DateTimeOffset StartedAt { get; init; }
 
     /// <param name="dungeon">The dungeon of the run, rebuilt from its seed.</param>
@@ -47,6 +53,11 @@ public sealed class GetDungeonRunByIdResult
             ElementsHere = floor
                 .GetElementsAt(run.HeroPosition)
                 .Select(DungeonElementResult.From)
+                .ToList(),
+            Mobs = run.Mobs.Where(mob => mob.IsActive).Select(MobResult.From).ToList(),
+            KilledMobs = run
+                .Mobs.Where(mob => !mob.IsActive && mob.KilledOnTurn == run.Turn)
+                .Select(MobResult.From)
                 .ToList(),
             StartedAt = run.StartedAt,
         };

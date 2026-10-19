@@ -15,4 +15,7 @@ public enum RandomStream : uint
 
     /// <summary>Where the enemy silhouettes stand, how many per room, and their kind.</summary>
     Mobs = 5,
+
+    /// <summary>The random steps of the mobs during the run, one generator per mob and turn.</summary>
+    MobTurns = 6,
 }
