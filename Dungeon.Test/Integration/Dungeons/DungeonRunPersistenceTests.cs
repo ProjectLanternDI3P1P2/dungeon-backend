@@ -169,8 +169,85 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
     {
         // Arrange: on the way down, the rows of the next floor are partly updated (reused
         // element ids), partly inserted, and PostgreSQL returns them in its own order.
-        CancellationToken cancellation = TestContext.Current.CancellationToken;
         GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+
+        // Act
+        (DungeonRun stored, _) = await GoDownThenLoad(dungeon);
+
+        // Assert: the mobs act in this order, so a replay depends on it.
+        stored.CurrentFloor.Should().Be(1);
+        stored
+            .Mobs.Select(mob => mob.ElementId)
+            .Should()
+            .Equal(
+                dungeon
+                    .Floors[1]
+                    .Elements.Where(element => element.Type == ElementType.Enemy)
+                    .Select(element => element.Id)
+            );
+    }
+
+    [Fact]
+    public async Task Load_AfterGoingDown_ReusedElementIdsSpawnAfresh()
+    {
+        // Arrange: element ids restart on every floor, so the rows of the floor above are
+        // overwritten under the same key (DungeonRunId, ElementId).
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        DungeonElement[] spawns =
+        [
+            .. dungeon.Floors[1].Elements.Where(element => element.Type == ElementType.Enemy),
+        ];
+
+        // Act
+        (DungeonRun stored, IReadOnlyList<RunMob> above) = await GoDownThenLoad(dungeon);
+
+        // Assert: the reused rows carried state from the floor above, and none of it is left.
+        above
+            .Should()
+            .Contain(mob => spawns.Any(spawn => spawn.Id == mob.ElementId) && mob.Tick > 0);
+        stored
+            .Mobs.Select(mob =>
+                (
+                    mob.ElementId,
+                    mob.Kind,
+                    mob.Position,
+                    mob.HomeRoomId,
+                    mob.IsActive,
+                    mob.IsAggro,
+                    mob.Tick,
+                    mob.Teleport,
+                    mob.Door,
+                    mob.KilledOnTurn
+                )
+            )
+            .Should()
+            .Equal(
+                spawns.Select(spawn =>
+                    (
+                        spawn.Id,
+                        spawn.Kind!.Value,
+                        spawn.Position,
+                        spawn.RoomId,
+                        true,
+                        false,
+                        0,
+                        (Position?)null,
+                        (Position?)null,
+                        (int?)null
+                    )
+                )
+            );
+    }
+
+    /// <summary>
+    /// Plays the first floor down to the gate in one context, saves, and loads the run again.
+    /// </summary>
+    /// <returns>The run as stored, and its mobs just before the party went down.</returns>
+    private async Task<(DungeonRun Stored, IReadOnlyList<RunMob> Above)> GoDownThenLoad(
+        GeneratedDungeon dungeon
+    )
+    {
+        CancellationToken cancellation = TestContext.Current.CancellationToken;
         DungeonFloor floor = dungeon.Floors[0];
         DungeonRun run = DungeonRun.Start(
             Guid.NewGuid(),
@@ -184,6 +261,7 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
             await context.SaveChangesAsync(cancellation);
         }
 
+        IReadOnlyList<RunMob> above;
         await using (DungeonDbContext context = NewContext())
         {
             DungeonRun loaded = (
@@ -196,27 +274,16 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
             loaded.DefeatFloorBoss(dungeon);
             Position gate = DungeonTestData.PositionsOf(floor, CellType.Gate).Single();
             DungeonTestData.WalkTo(loaded, dungeon, gate.Step(Direction.South));
+            above = loaded.Mobs;
             loaded.MoveHero(Direction.North, dungeon, MobRules.Default);
             await context.SaveChangesAsync(cancellation);
         }
 
-        // Act
         await using DungeonDbContext reading = NewContext();
         DungeonRun stored = (
             await new DungeonRunRepository(reading).GetByIdAsync(run.Id, cancellation)
         )!;
-
-        // Assert: the mobs act in this order, so a replay depends on it.
-        stored.CurrentFloor.Should().Be(1);
-        stored
-            .Mobs.Select(mob => mob.ElementId)
-            .Should()
-            .Equal(
-                dungeon
-                    .Floors[1]
-                    .Elements.Where(element => element.Type == ElementType.Enemy)
-                    .Select(element => element.Id)
-            );
+        return (stored, above);
     }
 
     private static MobRules AllHunters()
