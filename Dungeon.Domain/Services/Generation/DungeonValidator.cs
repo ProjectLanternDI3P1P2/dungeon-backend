@@ -228,6 +228,13 @@ public static class DungeonValidator
                     $"element {element.Id} is not on a floor tile of room {element.RoomId}"
                 );
             }
+
+            if ((element.Type == ElementType.Enemy) != (element.Kind != null))
+            {
+                violations.Add(
+                    $"element {element.Id}: an enemy needs a kind, other elements have none"
+                );
+            }
         }
     }
 

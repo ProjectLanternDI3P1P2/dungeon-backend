@@ -40,7 +40,7 @@ public static class DungeonTestData
 
     /// <summary>
     /// Everything the generator decides, as text: tiles (walls, doors, obstacles, gates),
-    /// rooms (type, bounds, depth, connections) and elements (type, position, room).
+    /// rooms (type, bounds, depth, connections) and elements (type, position, room, kind).
     /// Two dungeons are identical exactly when their snapshots are equal.
     /// </summary>
     public static string Snapshot(GeneratedDungeon dungeon)
@@ -85,7 +85,7 @@ public static class DungeonTestData
         foreach (DungeonElement element in floor.Elements)
         {
             builder.Append(
-                $"element {element.Id} {element.Type} {element.Position} r{element.RoomId}\n"
+                $"element {element.Id} {element.Type} {element.Position} r{element.RoomId} k{element.Kind}\n"
             );
         }
 

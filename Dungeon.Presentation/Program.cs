@@ -11,6 +11,8 @@ builder.Services.AddInfrastructureServices(builder.Configuration).AddApplication
 
 var app = builder.Build();
 
+// TODO(tech-debt): migrations only run in Development, nothing applies them in k3s
+// (ADR-0036) — add a migration job or a --migrate command to the image.
 if (app.Environment.IsDevelopment())
 {
     await app.Services.MigrateAndSeedDevelopmentDataAsync();

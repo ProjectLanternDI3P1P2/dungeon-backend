@@ -9,7 +9,15 @@ public sealed record PositionResult(int X, int Y)
     public static PositionResult From(Position position) => new(position.X, position.Y);
 }
 
-public sealed record DungeonElementResult(int Id, string Type, int X, int Y, int RoomId)
+/// <param name="Kind">How an enemy silhouette moves; null for any other element.</param>
+public sealed record DungeonElementResult(
+    int Id,
+    string Type,
+    int X,
+    int Y,
+    int RoomId,
+    string? Kind
+)
 {
     public static DungeonElementResult From(DungeonElement element) =>
         new(
@@ -17,7 +25,8 @@ public sealed record DungeonElementResult(int Id, string Type, int X, int Y, int
             DungeonContract.Name(element.Type),
             element.Position.X,
             element.Position.Y,
-            element.RoomId
+            element.RoomId,
+            element.Kind is { } kind ? DungeonContract.Name(kind) : null
         );
 }
 
@@ -72,6 +81,16 @@ public static class DungeonContract
             ElementType.Item => "item",
             ElementType.Trap => "trap",
             _ => throw new ArgumentOutOfRangeException(nameof(elementType), elementType, null),
+        };
+
+    public static string Name(EnemyKind enemyKind) =>
+        enemyKind switch
+        {
+            EnemyKind.Zombie => "zombie",
+            EnemyKind.Mage => "mage",
+            EnemyKind.Goblin => "goblin",
+            EnemyKind.Bat => "bat",
+            _ => throw new ArgumentOutOfRangeException(nameof(enemyKind), enemyKind, null),
         };
 
     public static string Name(RoomType roomType) =>

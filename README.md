@@ -1,5 +1,8 @@
 # .NET Backend Service Template
 
+Deployment parameters and target service communications are documented in
+[deployment configuration](docs/deployment-configuration.md).
+
 Starting point for a backend microservice: a .NET 10 Clean Architecture solution,
 the CI pipeline that guards it, and the branching flow that releases it.
 
@@ -32,6 +35,19 @@ dotnet build Dungeon.Presentation.slnx
 dotnet test --solution Dungeon.Presentation.slnx
 dotnet run --project Dungeon.Presentation/Dungeon.Presentation.csproj
 ```
+
+## Private NuGet packages
+
+When a restore needs a private `*.Contracts` package from GitHub Packages, define
+these credentials in the current PowerShell session before `dotnet restore` or
+`dotnet run`:
+
+```powershell
+$env:NuGetPackageSourceCredentials_github = "Username=<github-login>;Password=<personal-access-token>;ValidAuthenticationTypes=Basic"
+```
+
+The token needs the `read:packages` scope. The `github` suffix matches the source
+name in `NuGet.config`; never commit the token or add it to a tracked `.env` file.
 
 ## Dungeon generation
 
@@ -191,7 +207,7 @@ feature/xxx --merge commit--> dev --merge commit--> main --> tag + CHANGELOG
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org):
 `feat:` and `fix:` appear in the changelog and move the version, everything else
-(`chore:`, `ci:`, `refactor:`, `test:`, `docs:`, `build:`, `style:`) is hidden and
+(`chore:`, `ci:`, `cd:`, `refactor:`, `test:`, `docs:`, `build:`, `style:`) is hidden and
 moves nothing. Since every commit reaches `main`, every commit message is checked:
 by a `commit-msg` hook locally and by the `Commitlint` job in CI. The full rules
 are in [docs/GIT_RULES.md](./docs/GIT_RULES.md).
