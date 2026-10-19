@@ -111,22 +111,22 @@ public class MobTurnTeleportTests
     }
 
     [Fact]
-    public void Mage_AnnouncedTileTaken_StaysAndAnnouncesAgain()
+    public void Mage_HeroStepsOntoItsAnnouncedTile_StartsTheFight()
     {
-        // Arrange: the hero walks onto the tile the mage announced.
+        // Arrange: the mage announces the tile right in front of the hero.
         (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H.....m");
-
-        // Act
         run.MoveHero(Direction.East, dungeon);
         run.MoveHero(Direction.East, dungeon);
         Position? announced = Mage(run).Teleport;
+
+        // Act: the hero walks into the glow.
         run.MoveHero(Direction.East, dungeon);
 
-        // Assert
+        // Assert: a contact, like standing next to it; it never re-announces.
         announced.Should().Be(new Position(4, 1));
         run.HeroPosition.Should().Be(new Position(4, 1));
+        Mage(run).IsActive.Should().BeFalse();
         Mage(run).Position.Should().Be(new Position(7, 1));
-        Mage(run).Teleport.Should().Be(new Position(5, 1));
     }
 
     [Fact]

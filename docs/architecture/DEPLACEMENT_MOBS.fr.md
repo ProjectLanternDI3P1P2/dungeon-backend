@@ -79,8 +79,10 @@ runs : une modification s'applique dès le tour suivant.
 
 ## 6. Contact (bouchon en attendant Combat)
 
-Un héros à 1 case d'un mob actif (diagonales comprises, `Position.DistanceTo`)
-ou qui le bouscule le passe à `active = false` : il est « mort » et disparaît.
+Un héros à 1 case d'un mob actif (diagonales comprises, `Position.DistanceTo`),
+qui le bouscule, ou qui entre sur la case annoncée d'un mage le passe à
+`active = false` : il est « mort » et disparaît. Pour la case annoncée, le
+contact a lieu avant que les mobs agissent : le mage ne réannonce pas ailleurs.
 L'US déclenchement remplacera ce bouchon par le combat contre son pack.
 
 ## 7. API

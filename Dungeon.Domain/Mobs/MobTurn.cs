@@ -34,7 +34,14 @@ internal static class MobTurn
             }
         }
 
-        foreach (RunMob mob in active)
+        // Walking into the glow a mage announced is a contact too: the fight starts before the
+        // mage can pick another tile.
+        foreach (RunMob mage in active.Where(mob => mob.Teleport == hero))
+        {
+            mage.Kill();
+        }
+
+        foreach (RunMob mob in active.Where(mob => mob.IsActive))
         {
             MobBehaviour behaviour = rules.For(mob.Kind);
             bool diagonal = behaviour.Step == MobStep.Diagonal;
@@ -77,7 +84,8 @@ internal static class MobTurn
             mob.Kill();
         }
 
-        bool IsFree(Position tile) => tile != hero && !active.Any(other => other.Position == tile);
+        bool IsFree(Position tile) =>
+            tile != hero && !active.Any(other => other.IsActive && other.Position == tile);
     }
 
     /// <summary>A room is discovered when a hero stands in it or on one of its doors.</summary>
