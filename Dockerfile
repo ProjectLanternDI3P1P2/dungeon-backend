@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.10
 
 ARG DOTNET_VERSION=10.0
 
