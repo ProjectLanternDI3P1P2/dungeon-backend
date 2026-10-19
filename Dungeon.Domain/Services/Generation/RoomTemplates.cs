@@ -8,8 +8,8 @@ namespace Dungeon.Domain.Services.Generation;
 /// <para>
 /// Legend: <c>.</c> floor, <c>#</c> wall, space: void (a pit), <c>o</c> barrel or jar,
 /// <c>I</c> column, <c>=</c> railing, <c>g</c> sewer grate (walkable), <c>~</c> water,
-/// <c>^</c> lava, <c>T</c> tomb (two or three side by side), <c>e</c> enemy spot,
-/// <c>t</c> spike trap, <c>$</c> treasure spot, <c>B</c> boss.
+/// <c>^</c> lava, <c>T</c> tomb (two or three side by side), <c>t</c> spike trap,
+/// <c>$</c> treasure spot, <c>B</c> boss. Enemies have no spot: the generator places them.
 /// </para>
 /// <para>
 /// Every template has odd dimensions, a walkable centre, and a walkable tile in the middle

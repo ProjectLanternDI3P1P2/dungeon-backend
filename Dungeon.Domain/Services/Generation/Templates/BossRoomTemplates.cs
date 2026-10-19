@@ -139,8 +139,8 @@ internal static class BossRoomTemplates
             ],
             RoomRarity.Uncommon
         ),
-        // An immense throne hall: the king waits on his dais, his guards posted down
-        // the colonnade, a sacrificial altar of tombs flanking the central aisle.
+        // An immense throne hall: the king waits alone on his dais, down the colonnade,
+        // a sacrificial altar of tombs flanking the central aisle.
         new(
             "ThroneOfSacrifice",
             [RoomType.Boss],
@@ -151,18 +151,18 @@ internal static class BossRoomTemplates
                 ".........................",
                 ".........................",
                 "...I...I.........I...I...",
-                ".....e.............e.....",
-                "............e............",
+                ".........................",
+                ".........................",
                 "...I...I.........I...I...",
-                "..e...................e..",
+                ".........................",
                 ".........TTT.TTT.........",
                 "...I...o.........o...I...",
                 ".........TTT.TTT.........",
-                ".....e.............e.....",
+                ".........................",
                 "...I...I.........I...I...",
                 ".........................",
-                "............e............",
-                "........e.ggggg.e........",
+                ".........................",
+                "..........ggggg..........",
                 ".........................",
             ],
             RoomRarity.Rare
