@@ -16,6 +16,9 @@ internal static class MobTurn
     public static void Play(DungeonRun run, DungeonFloor floor, MobRules rules)
     {
         Position hero = run.HeroPosition;
+
+        // The run ends this turn once the mobs have played: deaths are dated with it.
+        int turn = run.Turn + 1;
         Discover(run, floor, hero);
 
         DistanceField walking = DistanceField.From(floor, hero, diagonal: false);
@@ -38,7 +41,7 @@ internal static class MobTurn
         // mage can pick another tile.
         foreach (RunMob mage in active.Where(mob => mob.Teleport == hero))
         {
-            mage.Kill();
+            mage.Kill(turn);
         }
 
         foreach (RunMob mob in active.Where(mob => mob.IsActive))
@@ -81,7 +84,7 @@ internal static class MobTurn
         // (fight-trigger user story).
         foreach (RunMob mob in active.Where(mob => mob.Position.DistanceTo(hero) <= 1))
         {
-            mob.Kill();
+            mob.Kill(turn);
         }
 
         bool IsFree(Position tile) =>

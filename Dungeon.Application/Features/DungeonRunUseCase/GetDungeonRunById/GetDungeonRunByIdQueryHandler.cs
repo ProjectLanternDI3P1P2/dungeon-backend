@@ -41,6 +41,10 @@ public sealed class GetDungeonRunByIdQueryHandler(
                 .Select(DungeonElementResult.From)
                 .ToList(),
             Mobs = run.Mobs.Where(mob => mob.IsActive).Select(MobResult.From).ToList(),
+            KilledMobs = run
+                .Mobs.Where(mob => !mob.IsActive && mob.KilledOnTurn == run.Turn)
+                .Select(MobResult.From)
+                .ToList(),
             StartedAt = run.StartedAt,
         };
     }

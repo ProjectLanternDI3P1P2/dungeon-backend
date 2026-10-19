@@ -94,8 +94,10 @@ L'US déclenchement remplacera ce bouchon par le combat contre son pack.
            "nextTeleport": { "x": 44, "y": 12 } }]
 ```
 
-Seuls les mobs actifs sont listés. `nextTeleport` n'existe que pour un mage qui
-a annoncé son saut.
+Seuls les mobs actifs sont listés dans `mobs`. `nextTeleport` n'existe que pour
+un mage qui a annoncé son saut. `killedMobs` liste, avec les mêmes champs, les
+mobs morts **à ce tour**, sur la case où ils sont tombés (`KilledOnTurn` dans la
+run) : le front les fait glisser jusque-là avant de les effacer.
 
 ## 8. Front
 

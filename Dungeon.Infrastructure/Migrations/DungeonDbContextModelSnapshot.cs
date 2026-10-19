@@ -144,6 +144,9 @@ namespace Dungeon.Infrastructure.Migrations
                             b1.Property<bool>("IsAggro")
                                 .HasColumnType("boolean");
 
+                            b1.Property<int?>("KilledOnTurn")
+                                .HasColumnType("integer");
+
                             b1.Property<string>("Kind")
                                 .IsRequired()
                                 .HasMaxLength(20)

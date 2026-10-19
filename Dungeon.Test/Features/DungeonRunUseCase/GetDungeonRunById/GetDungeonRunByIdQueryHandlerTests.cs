@@ -21,7 +21,7 @@ public class GetDungeonRunByIdQueryHandlerTests
             dungeon,
             DateTimeOffset.UtcNow
         );
-        run.Mobs[0].Kill();
+        run.Mobs[0].Kill(run.Turn - 1);
         RunMob announcer = run.Mobs[1];
         announcer.Announce(new Position(announcer.X + 1, announcer.Y));
         Mock<IDungeonRunRepository> repository = new();
@@ -53,5 +53,44 @@ public class GetDungeonRunByIdQueryHandlerTests
             .NextTeleport.Should()
             .Be(new Application.Models.PositionResult(announcer.X + 1, announcer.Y));
         result.Mobs.Skip(1).Should().OnlyContain(mob => mob.NextTeleport == null && !mob.Aggro);
+    }
+
+    [Fact]
+    public async Task Handle_MobKilledThisTurn_IsListedWhereItFell()
+    {
+        // Arrange: one mob killed on this turn, one on an earlier turn.
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        DungeonRun run = DungeonRun.Start(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            dungeon,
+            DateTimeOffset.UtcNow
+        );
+        RunMob earlier = run.Mobs[0];
+        RunMob now = run.Mobs[1];
+        earlier.Kill(run.Turn - 1);
+        now.MoveTo(new Position(now.X + 1, now.Y));
+        now.Kill(run.Turn);
+        Mock<IDungeonRunRepository> repository = new();
+        repository
+            .Setup(r => r.GetByIdAsync(run.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+        GetDungeonRunByIdQueryHandler handler = new(
+            repository.Object,
+            new GeneratingDungeonProvider()
+        );
+
+        // Act
+        GetDungeonRunByIdResult result = await handler.Handle(
+            new GetDungeonRunByIdQuery(run.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert: the front lets it slide to its last tile before it fades out.
+        result
+            .KilledMobs.Select(mob => (mob.Id, mob.X, mob.Y))
+            .Should()
+            .Equal((now.ElementId, now.X, now.Y));
+        result.Mobs.Select(mob => mob.Id).Should().NotContain([earlier.ElementId, now.ElementId]);
     }
 }

@@ -27,6 +27,9 @@ public sealed class RunMob
     /// <summary>False once the party has touched it: it is dead and gone.</summary>
     public bool IsActive { get; private set; }
 
+    /// <summary>The turn it died on, so that the front can show it fall where it stood.</summary>
+    public int? KilledOnTurn { get; private set; }
+
     /// <summary>Hunting the party, for good: aggro only ends with the mob or the floor.</summary>
     public bool IsAggro { get; private set; }
 
@@ -91,5 +94,9 @@ public sealed class RunMob
         DoorY = door.Y;
     }
 
-    internal void Kill() => IsActive = false;
+    internal void Kill(int turn)
+    {
+        IsActive = false;
+        KilledOnTurn = turn;
+    }
 }

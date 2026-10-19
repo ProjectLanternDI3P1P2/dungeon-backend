@@ -31,9 +31,10 @@ public class MobContactTests
         // Act: the zombie steps next to the hero, diagonally.
         run.MoveHero(Direction.East, dungeon);
 
-        // Assert
+        // Assert: it died where it stepped, on this very turn.
         run.Mobs[0].Position.Should().Be(new Position(3, 2));
         run.Mobs[0].IsActive.Should().BeFalse();
+        run.Mobs[0].KilledOnTurn.Should().Be(run.Turn);
     }
 
     [Fact]

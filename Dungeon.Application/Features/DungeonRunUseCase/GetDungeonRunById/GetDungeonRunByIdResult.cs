@@ -26,5 +26,8 @@ public sealed class GetDungeonRunByIdResult
     /// <summary>The living mobs of the current floor, in element order.</summary>
     public IReadOnlyList<MobResult> Mobs { get; init; } = [];
 
+    /// <summary>The mobs that died on this turn, on the tile they fell on.</summary>
+    public IReadOnlyList<MobResult> KilledMobs { get; init; } = [];
+
     public DateTimeOffset StartedAt { get; init; }
 }
