@@ -125,50 +125,59 @@ internal static class MobTurn
             }
             else
             {
-                mob.Announce(JumpTarget(mob, floor, field, behaviour.TeleportDistance, hero));
+                mob.Announce(
+                    JumpTarget(mob, floor, field, behaviour.TeleportDistance, hero, isFree)
+                );
             }
         }
         else if (behaviour.ActsOn(mob.Tick + 1))
         {
-            mob.Announce(JumpTarget(mob, floor, field, behaviour.TeleportDistance, hero));
+            mob.Announce(JumpTarget(mob, floor, field, behaviour.TeleportDistance, hero, isFree));
         }
     }
 
     /// <summary>
-    /// The tile <paramref name="distance"/> steps down the field, short of the hero: the jump
-    /// follows the path, so it never crosses a wall. Null when there is nowhere to go.
+    /// The best tile within <paramref name="distance"/> steps of the mage, diagonals included:
+    /// the free one closest to the hero along the path, then as the crow flies, then in reading
+    /// order. Steps never cross nor cut a wall, and never end on the hero. Null when no tile
+    /// brings the mage closer.
     /// </summary>
     private static Position? JumpTarget(
         RunMob mob,
         DungeonFloor floor,
-        DistanceField field,
+        DistanceField towardHero,
         int distance,
-        Position hero
+        Position hero,
+        Func<Position, bool> isFree
     )
     {
-        Position at = mob.Position;
-        for (int step = 0; step < distance; step++)
+        DistanceField reach = DistanceField.From(floor, mob.Position, diagonal: true);
+        Position? best = null;
+        (int Steps, int Crow) bestScore = (towardHero.To(mob.Position) ?? int.MaxValue, 0);
+        for (int y = mob.Y - distance; y <= mob.Y + distance; y++)
         {
-            Position? next = null;
-            int best = field.To(at) ?? 0;
-            foreach (Position tile in DistanceField.Neighbours(floor, at, diagonal: false))
+            for (int x = mob.X - distance; x <= mob.X + distance; x++)
             {
-                if (tile != hero && field.To(tile) is int steps && steps < best)
+                Position tile = new(x, y);
+                if (
+                    reach.To(tile) is >= 1 and int jump
+                    && jump <= distance
+                    && tile != hero
+                    && isFree(tile)
+                    && towardHero.To(tile) is int steps
+                )
                 {
-                    next = tile;
-                    best = steps;
+                    (int, int) score = (steps, tile.DistanceTo(hero));
+                    if (score.CompareTo(bestScore) < 0)
+                    {
+                        best = tile;
+                        bestScore = score;
+                    }
                 }
             }
-
-            if (next is not Position found)
-            {
-                break;
-            }
-
-            at = found;
         }
 
-        return at == mob.Position ? null : at;
+        return best;
     }
 
     /// <summary>

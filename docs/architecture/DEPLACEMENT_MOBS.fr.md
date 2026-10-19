@@ -64,9 +64,11 @@ runs : une modification s'applique dès le tour suivant.
 - `Step` :
   - `Orthogonal` : 1 pas dans les 4 directions.
   - `Diagonal` : 1 pas dans les 8 directions, sans couper le coin entre deux murs.
-  - `Teleport` : saut sur la case située `TeleportDistance` pas plus loin sur son
-    chemin. La case est choisie et exposée **un tour avant**. Si elle est
-    occupée au moment du saut, le mage reste et en choisit une autre.
+  - `Teleport` : saut vers la meilleure case à `TeleportDistance` pas au plus,
+    diagonales comprises, sans traverser ni couper un mur : la case libre la plus
+    proche du héros en chemin, puis à vol d'oiseau, puis en ordre de lecture,
+    jamais celle du héros. La case est choisie et exposée **un tour avant**. Si
+    elle est occupée au moment du saut, le mage reste et en choisit une autre.
 - `Idle` (hors aggro) :
   - `Wander` : avance vers le centre de sa salle jusqu'à `WanderRadius` cases,
     puis pas aléatoire ou immobile, **sans quitter sa salle**.

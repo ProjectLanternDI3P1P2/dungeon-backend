@@ -93,23 +93,40 @@ public class MobTurnTeleportTests
     }
 
     [Fact]
+    public void Mage_JumpsDiagonally_ToTheTileClosestToTheHero()
+    {
+        // Arrange: an open room, the hero in a corner and the mage four tiles away on both axes.
+        GeneratedDungeon dungeon = DungeonTestData.Arena(
+            ["#######", "#H....#", "#.....#", "#.....#", "#.....#", "#....m#", "#######"],
+            new RoomBounds(1, 1, 5, 5)
+        );
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+
+        // Act: the hero paces, the mage announces on the second turn.
+        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.West, dungeon);
+
+        // Assert: three diagonal steps, two tiles from the hero.
+        Mage(run).Teleport.Should().Be(new Position(2, 2));
+    }
+
+    [Fact]
     public void Mage_AnnouncedTileTaken_StaysAndAnnouncesAgain()
     {
-        // Arrange: the zombie in front reaches the announced tile just before the jump.
-        (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H.......zm");
+        // Arrange: the hero walks onto the tile the mage announced.
+        (DungeonRun run, GeneratedDungeon dungeon) = Corridor("H.....m");
 
         // Act
-        for (int turn = 0; turn < 3; turn++)
-        {
-            run.MoveHero(Pace(turn), dungeon);
-        }
+        run.MoveHero(Direction.East, dungeon);
+        run.MoveHero(Direction.East, dungeon);
+        Position? announced = Mage(run).Teleport;
+        run.MoveHero(Direction.East, dungeon);
 
         // Assert
-        run.Mobs.Single(mob => mob.Kind == EnemyKind.Zombie)
-            .Position.Should()
-            .Be(new Position(7, 1));
-        Mage(run).Position.Should().Be(new Position(10, 1));
-        Mage(run).Teleport.Should().NotBeNull();
+        announced.Should().Be(new Position(4, 1));
+        run.HeroPosition.Should().Be(new Position(4, 1));
+        Mage(run).Position.Should().Be(new Position(7, 1));
+        Mage(run).Teleport.Should().Be(new Position(5, 1));
     }
 
     [Fact]
@@ -123,9 +140,8 @@ public class MobTurnTeleportTests
             // Act
             run.MoveHero(Pace(turn), dungeon);
 
-            // Assert
+            // Assert: the hero may walk onto the announced tile, the mage never lands there.
             Mage(run).Position.Should().NotBe(run.HeroPosition);
-            Mage(run).Teleport.Should().NotBe(run.HeroPosition);
         }
     }
 }
