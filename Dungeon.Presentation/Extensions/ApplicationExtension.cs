@@ -1,3 +1,4 @@
+using Dungeon.Presentation.Hubs;
 using Dungeon.Presentation.Middleware;
 using Scalar.AspNetCore;
 
@@ -24,6 +25,7 @@ public static class ApplicationExtension
         }
 
         app.MapControllers();
+        app.MapHub<DungeonHub>(DungeonHub.Route);
         app.MapGrpcServices();
         app.MapHealthChecks("/health/live");
         app.MapHealthChecks("/health/ready");

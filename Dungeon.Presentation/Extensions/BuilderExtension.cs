@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using Dungeon.Presentation.Extensions.LogExtension;
 using Dungeon.Presentation.Grpc.Interceptors;
+using Dungeon.Presentation.Hubs;
 using Dungeon.Presentation.Middleware;
 using Microsoft.AspNetCore.ResponseCompression;
 using Serilog;
@@ -28,6 +29,8 @@ public static class BuilderExtension
                         .WithOrigins(allowedOrigins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
+                        // The SignalR client negotiates with credentials by default.
+                        .AllowCredentials()
                         .WithExposedHeaders("X-Correlation-Id")
             )
         );
@@ -61,6 +64,9 @@ public static class BuilderExtension
             options.Interceptors.Add<CorrelationIdInterceptor>();
             options.Interceptors.Add<GrpcExceptionInterceptor>();
         });
+        builder.Services.AddSignalR();
+        builder.Services.AddMemoryCache();
+        builder.Services.AddSingleton<HubCommandCache>();
 
         ConfigureLogger(builder);
 
