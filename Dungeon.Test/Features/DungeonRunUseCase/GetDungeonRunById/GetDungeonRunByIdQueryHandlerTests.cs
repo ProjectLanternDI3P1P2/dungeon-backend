@@ -11,6 +11,41 @@ namespace Dungeon.Test.Features.DungeonRunUseCase.GetDungeonRunById;
 public class GetDungeonRunByIdQueryHandlerTests
 {
     [Fact]
+    public async Task Handle_NewRun_ReportsTheExplorationOfTheFloor()
+    {
+        // Arrange
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        DungeonFloor floor = dungeon.Floors[0];
+        DungeonRun run = DungeonRun.Start(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            dungeon,
+            DateTimeOffset.UtcNow
+        );
+        Mock<IDungeonRunRepository> repository = new();
+        repository
+            .Setup(r => r.GetByIdAsync(run.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(run);
+        GetDungeonRunByIdQueryHandler handler = new(
+            repository.Object,
+            new GeneratingDungeonProvider()
+        );
+
+        // Act
+        GetDungeonRunByIdResult result = await handler.Handle(
+            new GetDungeonRunByIdQuery(run.Id),
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert: the start room, and the entrance as the only tile stood on.
+        result.DiscoveredRoomIds.Should().Equal(floor.GetRoomId(floor.Entrance)!.Value);
+        byte[] tiles = Convert.FromBase64String(result.VisitedTiles);
+        tiles.Should().HaveCount((floor.Width * floor.Height + 7) / 8);
+        int entrance = floor.Entrance.Y * floor.Width + floor.Entrance.X;
+        tiles[entrance / 8].Should().Be((byte)(1 << (entrance % 8)));
+    }
+
+    [Fact]
     public async Task Handle_ActiveRun_ListsItsLivingMobs()
     {
         // Arrange: one mob dead, one mage with an announced jump.

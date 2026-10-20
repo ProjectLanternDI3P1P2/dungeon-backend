@@ -78,5 +78,12 @@ public class DungeonRunConfiguration : IEntityTypeConfiguration<DungeonRun>
             .HasColumnName("DiscoveredRoomIds")
             .IsRequired()
             .HasDefaultValueSql("'{}'");
+
+        builder.Ignore(run => run.VisitedTiles);
+        builder
+            .Property<byte[]>("_visitedTiles")
+            .HasColumnName("VisitedTiles")
+            .IsRequired()
+            .HasDefaultValueSql("'\\x'::bytea");
     }
 }

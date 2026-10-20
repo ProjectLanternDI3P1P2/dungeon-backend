@@ -80,6 +80,13 @@ namespace Dungeon.Infrastructure.Migrations
                         .HasColumnName("DiscoveredRoomIds")
                         .HasDefaultValueSql("'{}'");
 
+                    b.Property<byte[]>("_visitedTiles")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bytea")
+                        .HasColumnName("VisitedTiles")
+                        .HasDefaultValueSql("'\\x'::bytea");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GameSessionId");

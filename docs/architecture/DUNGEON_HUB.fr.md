@@ -140,6 +140,8 @@ Même forme que `GET /api/v1/dungeon-runs/{runId}` :
   "elementsHere": [],
   "mobs": [{ "...": "voir DEPLACEMENT_MOBS.fr.md §7" }],
   "killedMobs": [],
+  "discoveredRoomIds": [3],
+  "visitedTiles": "AAAAAAAg...",
   "startedAt": "2026-10-20T10:00:00+00:00"
 }
 ```
@@ -148,6 +150,20 @@ Même forme que `GET /api/v1/dungeon-runs/{runId}` :
 fois par étage avec `GET /api/v1/dungeons/{seed}/map?floor={currentFloor}`
 (immuable, cacheable). Un `enemy` ou `boss` dans `elementsHere` marque l'endroit
 où Combat prend la main.
+
+### Exploration (fog of war)
+
+L'exploration de l'étage courant est stockée par Dungeon, pas par le client :
+recharger la page ou changer de navigateur la conserve. Elle repart de zéro à
+chaque nouvel étage.
+
+| Champ | Contenu |
+| --- | --- |
+| `discoveredRoomIds` | Salles découvertes : le héros s'y est tenu ou s'est tenu sur une de leurs portes. Leurs mobs savent que le groupe est là. |
+| `visitedTiles` | Tuiles où un héros s'est tenu, en bitset base64, ligne par ligne : la tuile `i = y * width + x` est le bit `i % 8` (poids faible d'abord) de l'octet `i / 8`. `width` est celle de la carte de l'étage. Chaîne vide pour un run créé avant cet ajout, jusqu'à son prochain déplacement. |
+
+Le client reconstruit son brouillard en rejouant sa règle de révélation sur
+chaque tuile visitée.
 
 ## 6. Pour les autres services
 
