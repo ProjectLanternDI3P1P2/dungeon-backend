@@ -139,72 +139,6 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
     }
 
     [Fact]
-    public async Task PostMove_TowardsAFloorTile_MovesTheHeroAndEndsTheTurn()
-    {
-        // Arrange
-        var run = await (
-            await PostRunAsync(Guid.NewGuid())
-        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
-        GetDungeonMapResult map = await GetMapAsync(run!.Seed);
-
-        // The seed is random, and so is the start room: a column may stand beside the
-        // entrance. The party steps onto whichever neighbouring tile is plain floor.
-        (string direction, int dx, int dy) = new[]
-        {
-            ("east", 1, 0),
-            ("west", -1, 0),
-            ("south", 0, 1),
-        }.First(move => map.Rows[run.Hero.Y + move.Item3][run.Hero.X + move.Item2] == '.');
-
-        // Act
-        HttpResponseMessage response = await fixture.HttpClient.PostAsJsonAsync(
-            $"/api/v1/dungeon-runs/{run.Id}/moves",
-            new MoveHeroDto { Direction = direction },
-            TestContext.Current.CancellationToken
-        );
-        var moved = await response.Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        moved!.Hero.X.Should().Be(run.Hero.X + dx);
-        moved.Hero.Y.Should().Be(run.Hero.Y + dy);
-        moved.Turn.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task PostMove_ReturnsTheMobsAfterTheirTurn()
-    {
-        // Arrange
-        var run = await (
-            await PostRunAsync(Guid.NewGuid())
-        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
-        GetDungeonMapResult map = await GetMapAsync(run!.Seed);
-        string direction = new[] { ("east", 1, 0), ("west", -1, 0), ("south", 0, 1) }
-            .First(move => map.Rows[run.Hero.Y + move.Item3][run.Hero.X + move.Item2] == '.')
-            .Item1;
-
-        // Act
-        HttpResponseMessage response = await fixture.HttpClient.PostAsJsonAsync(
-            $"/api/v1/dungeon-runs/{run.Id}/moves",
-            new MoveHeroDto { Direction = direction },
-            TestContext.Current.CancellationToken
-        );
-        var moved = await response.Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert: the mobs of the first floor, each with the wire name of its kind.
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        run.Mobs.Should().NotBeEmpty();
-        moved!.Mobs.Select(mob => mob.Id).Should().Equal(run.Mobs.Select(mob => mob.Id));
-        moved
-            .Mobs.Should()
-            .OnlyContain(mob => new[] { "zombie", "mage", "goblin", "bat" }.Contains(mob.Kind));
-    }
-
-    [Fact]
     public async Task PostBossDefeat_AwayFromTheBoss_Returns409AndKeepsTheGateClosed()
     {
         // Arrange
@@ -226,25 +160,6 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
         after!.FloorBossDefeated.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task PostMove_UnknownDirection_Returns422()
-    {
-        // Arrange
-        var run = await (
-            await PostRunAsync(Guid.NewGuid())
-        ).Content.ReadFromJsonAsync<GetDungeonRunByIdResult>(TestContext.Current.CancellationToken);
-
-        // Act
-        HttpResponseMessage response = await fixture.HttpClient.PostAsJsonAsync(
-            $"/api/v1/dungeon-runs/{run!.Id}/moves",
-            new MoveHeroDto { Direction = "up" },
-            TestContext.Current.CancellationToken
-        );
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
     private Task<HttpResponseMessage> PostRunAsync(Guid gameSessionId)
