@@ -87,7 +87,7 @@ L'US déclenchement remplacera ce bouchon par le combat contre son pack.
 
 ## 7. API
 
-`POST /dungeon-runs/{id}/moves` et `GET /dungeon-runs/{id}` renvoient en plus :
+La réponse de `MoveHero` sur le Hub (`/hubs/dungeons`, voir `DUNGEON_HUB.fr.md`), l'événement `DungeonStateChanged` et `GET /dungeon-runs/{id}` renvoient en plus :
 
 ```json
 "mobs": [{ "id": 3, "kind": "mage", "x": 41, "y": 12, "aggro": true,

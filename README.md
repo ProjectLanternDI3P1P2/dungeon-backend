@@ -75,7 +75,10 @@ The internal gRPC endpoint exposes:
   [Dungeon.Contracts/README.md](Dungeon.Contracts/README.md).
 - `DungeonPlayerService/GetPlayer`: the template example.
 
-The REST API remains the client-facing interface. Locally, gRPC listens on
+Clients reach the service through REST for non-gameplay reads and through the
+SignalR `DungeonHub` at `/hubs/dungeons` for gameplay (moving, descending): its
+contract is in [docs/architecture/DUNGEON_HUB.fr.md](docs/architecture/DUNGEON_HUB.fr.md).
+Locally, gRPC listens on
 `http://localhost:8081`; Docker binds it only to loopback. In Kubernetes, expose
 that port through an internal-only Service, never through the ingress.
 
