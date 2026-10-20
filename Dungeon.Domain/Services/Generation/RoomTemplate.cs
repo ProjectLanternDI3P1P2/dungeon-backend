@@ -17,7 +17,6 @@ public sealed class RoomTemplate
     public const char WaterTile = '~';
     public const char LavaTile = '^';
     public const char TombTile = 'T';
-    public const char EnemySpot = 'e';
     public const char TrapSpot = 't';
     public const char TreasureSpot = '$';
     public const char BossSpot = 'B';
@@ -73,7 +72,7 @@ public sealed class RoomTemplate
             WaterTile => CellType.Water,
             LavaTile => CellType.Lava,
             TombTile => CellType.Tomb,
-            FloorTile or EnemySpot or TrapSpot or TreasureSpot or BossSpot => CellType.Floor,
+            FloorTile or TrapSpot or TreasureSpot or BossSpot => CellType.Floor,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(tile),
                 tile,

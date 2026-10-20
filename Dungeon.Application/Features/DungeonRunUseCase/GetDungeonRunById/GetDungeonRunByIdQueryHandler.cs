@@ -1,4 +1,3 @@
-using Dungeon.Application.Models;
 using Dungeon.Application.Ports;
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Repositories;
@@ -21,26 +20,6 @@ public sealed class GetDungeonRunByIdQueryHandler(
             cancellationToken
         );
 
-        DungeonFloor floor = dungeonProvider.Get(run).Floors[run.CurrentFloor];
-
-        return new GetDungeonRunByIdResult
-        {
-            Id = run.Id,
-            GameSessionId = run.GameSessionId,
-            Seed = run.Seed.ToString(),
-            GeneratorVersion = run.GeneratorVersion,
-            Status = DungeonContract.Name(run.Status),
-            FloorCount = run.FloorCount,
-            CurrentFloor = run.CurrentFloor,
-            Hero = PositionResult.From(run.HeroPosition),
-            Turn = run.Turn,
-            FloorBossDefeated = run.IsFloorBossDefeated,
-            CurrentRoomId = floor.GetRoomId(run.HeroPosition),
-            ElementsHere = floor
-                .GetElementsAt(run.HeroPosition)
-                .Select(DungeonElementResult.From)
-                .ToList(),
-            StartedAt = run.StartedAt,
-        };
+        return GetDungeonRunByIdResult.From(run, dungeonProvider.Get(run));
     }
 }

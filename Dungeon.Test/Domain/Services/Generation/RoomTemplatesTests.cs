@@ -7,8 +7,8 @@ namespace Dungeon.Test.Domain.Services.Generation;
 /// <summary>The hand-drawn rooms: every template must fit the generator's rules.</summary>
 public class RoomTemplatesTests
 {
-    private const string WalkableTiles = ".etB$g";
-    private const string KnownTiles = ".# oI=getB$~^T";
+    private const string WalkableTiles = ".tB$g";
+    private const string KnownTiles = ".# oI=gtB$~^T";
 
     public static TheoryData<string> TemplateNames()
     {
@@ -100,11 +100,6 @@ public class RoomTemplatesTests
                 .Rows[template.Height / 2][template.Width / 2]
                 .Should()
                 .Be(RoomTemplate.FloorTile);
-        }
-
-        if (template.RoomTypes.Contains(RoomType.Combat))
-        {
-            Count(RoomTemplate.EnemySpot).Should().BeGreaterThanOrEqualTo(2);
         }
 
         if (template.RoomTypes.Contains(RoomType.Treasure))

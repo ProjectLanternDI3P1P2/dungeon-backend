@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package dungeon.v1;
+
+option csharp_namespace = "Dungeon.Contracts.V1";
+
+// Contract owned by the Dungeon microservice. Field numbers are permanent:
+// do not reuse a deleted number; reserve it instead.
+//
+// Player owns the game session, Dungeon owns the run it explores (ADR-GLOB-011):
+// Player calls this service, on the internal gRPC endpoint only, when the creator
+// of a session starts it.
+service DungeonRunService {
+  // Generates the dungeon of a game session and starts its run, the party at the
+  // foot of the ladder on the first floor.
+  //
+  // Idempotent (ADR-0025): a game session has one run. Retrying the call, with the
+  // same command_id or another one, returns the run already started for the
+  // session instead of generating a second dungeon. Safe to retry on a deadline.
+  //
+  // Errors: INVALID_ARGUMENT for a malformed request; ALREADY_EXISTS when
+  // command_id already started the run of another game session.
+  rpc CreateDungeonRun (CreateDungeonRunRequest) returns (CreateDungeonRunResponse);
+}
+
+message CreateDungeonRunRequest {
+  // RFC 4122 textual UUID: the idempotency key of the Player command. It becomes
+  // the id of the run when the call creates one.
+  string command_id = 1;
+
+  // RFC 4122 textual UUID of the Player game session the run belongs to.
+  string game_session_id = 2;
+
+  // The heroes entering the dungeon. At least one, each listed once.
+  repeated DungeonRunParticipant participants = 3;
+
+  // Empty for a brand new dungeon. A seed of a previous run (13 base32
+  // characters) replays the same dungeon.
+  string seed = 4;
+}
+
+message DungeonRunParticipant {
+  // RFC 4122 textual UUID of the hero, owned by Player.
+  string hero_id = 1;
+}
+
+message CreateDungeonRunResponse {
+  // RFC 4122 textual UUID of the run, to keep on the game session.
+  string run_id = 1;
+
+  // The seed of the generated dungeon (13 base32 characters).
+  string seed = 2;
+}

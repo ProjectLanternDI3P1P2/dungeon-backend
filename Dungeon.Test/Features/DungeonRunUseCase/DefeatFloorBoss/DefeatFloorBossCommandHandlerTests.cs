@@ -2,6 +2,7 @@ using Dungeon.Application.Features.DungeonRunUseCase.DefeatFloorBoss;
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Exceptions;
+using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Repositories;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
@@ -40,7 +41,7 @@ public class DefeatFloorBossCommandHandlerTests
         Position boss = floor.Elements.Single(element => element.Type == ElementType.Boss).Position;
         foreach (Direction direction in DungeonTestData.FindPath(floor, _run.HeroPosition, boss)!)
         {
-            _run.MoveHero(direction, _dungeon);
+            _run.MoveHero(direction, _dungeon, MobRules.Default);
         }
 
         // Act

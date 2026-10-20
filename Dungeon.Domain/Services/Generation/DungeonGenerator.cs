@@ -21,8 +21,12 @@ public sealed class DungeonGenerator
     /// Version 3: hand-drawn room templates, a boss on every floor guarding the stairs room.
     /// Version 4: no stairs room; the party climbs down a ladder in the middle of the start
     /// room and leaves through the gate of the boss room. Water, lava and tombs.
+    /// Version 5: every enemy silhouette has a kind (zombie, mage, goblin, bat), drawn from
+    /// its own stream.
+    /// Version 6: no loot in combat rooms, Reward decides what a fight drops; the boss stands
+    /// alone in its room; the generator places the mobs itself, away from doors and walls.
     /// </remarks>
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 6;
 
     public GeneratedDungeon Generate(Seed seed, DungeonSettings settings)
     {
@@ -33,6 +37,8 @@ public sealed class DungeonGenerator
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        // TODO(tech-debt): no older algorithm is kept, a run of another version answers 409 —
+        // keep the previous generator once runs must survive a version change.
         if (generatorVersion != CurrentVersion)
         {
             throw new UnsupportedGeneratorVersionException(generatorVersion, CurrentVersion);

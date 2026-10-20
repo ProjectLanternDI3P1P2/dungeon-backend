@@ -9,7 +9,13 @@ public enum RandomStream : uint
 {
     Layout = 1,
 
-    // 2 was RoomShapes, no longer drawn from: never reuse it for another stage.
-    Content = 3,
+    // 2 was RoomShapes and 3 was Content (enemies and their loot), no longer drawn from:
+    // never reuse them for another stage.
     RoomTemplates = 4,
+
+    /// <summary>Where the enemy silhouettes stand, how many per room, and their kind.</summary>
+    Mobs = 5,
+
+    /// <summary>The random steps of the mobs during the run, one generator per mob and turn.</summary>
+    MobTurns = 6,
 }

@@ -54,5 +54,29 @@ public class DungeonRunConfiguration : IEntityTypeConfiguration<DungeonRun>
         builder.HasIndex(run => run.Seed);
 
         builder.HasIndex(run => run.GameSessionId);
+
+        // The mobs of the current floor: replaced on every arrival at a floor.
+        builder.OwnsMany(
+            run => run.Mobs,
+            mob =>
+            {
+                mob.ToTable("DungeonRunMobs");
+                mob.WithOwner().HasForeignKey("DungeonRunId");
+                mob.HasKey("DungeonRunId", nameof(RunMob.ElementId));
+                mob.Property(m => m.ElementId).ValueGeneratedNever();
+                mob.Property(m => m.Kind).IsRequired().HasMaxLength(20).HasConversion<string>();
+                mob.Ignore(m => m.Position);
+                mob.Ignore(m => m.Teleport);
+                mob.Ignore(m => m.Door);
+            }
+        );
+        builder.Navigation(run => run.Mobs).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Ignore(run => run.DiscoveredRoomIds);
+        builder
+            .Property<List<int>>("_discoveredRoomIds")
+            .HasColumnName("DiscoveredRoomIds")
+            .IsRequired()
+            .HasDefaultValueSql("'{}'");
     }
 }

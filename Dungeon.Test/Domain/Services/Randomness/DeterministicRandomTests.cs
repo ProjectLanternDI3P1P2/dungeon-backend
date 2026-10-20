@@ -82,11 +82,11 @@ public class DeterministicRandomTests
 
         // Act
         ulong layout = DeterministicRandom.ForStream(seed, RandomStream.Layout, 0).NextUInt64();
-        ulong content = DeterministicRandom.ForStream(seed, RandomStream.Content, 0).NextUInt64();
+        ulong mobs = DeterministicRandom.ForStream(seed, RandomStream.Mobs, 0).NextUInt64();
         ulong lowerFloor = DeterministicRandom.ForStream(seed, RandomStream.Layout, 1).NextUInt64();
 
         // Assert
-        new[] { layout, content, lowerFloor }
+        new[] { layout, mobs, lowerFloor }
             .Should()
             .OnlyHaveUniqueItems();
     }

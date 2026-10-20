@@ -5,6 +5,15 @@ namespace Dungeon.Domain.ValueObjects;
 /// <summary>A tile coordinate on a dungeon floor. X grows eastwards, Y grows southwards.</summary>
 public readonly record struct Position(int X, int Y)
 {
+    /// <summary>
+    /// Chebyshev distance: a diagonal step counts as one, so the eight tiles around a
+    /// position are all one tile away.
+    /// </summary>
+    public int DistanceTo(Position other)
+    {
+        return Math.Max(Math.Abs(X - other.X), Math.Abs(Y - other.Y));
+    }
+
     public Position Step(Direction direction)
     {
         return direction switch

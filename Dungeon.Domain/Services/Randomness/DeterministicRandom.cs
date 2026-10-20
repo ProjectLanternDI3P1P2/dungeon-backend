@@ -40,6 +40,21 @@ public sealed class DeterministicRandom
         return new DeterministicRandom(seed.Value ^ streamKey);
     }
 
+    /// <summary>
+    /// A generator for one mob on one turn of the run: replaying the same moves on the same
+    /// seed gives the same mobs, without storing any random state in the run.
+    /// </summary>
+    public static DeterministicRandom ForMobTurn(Seed seed, int floorIndex, int turn, int mobId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(floorIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(turn);
+        ArgumentOutOfRangeException.ThrowIfNegative(mobId);
+
+        ulong streamKey = SplitMix64.Mix(((ulong)RandomStream.MobTurns << 32) | (uint)floorIndex);
+        ulong turnKey = SplitMix64.Mix(((ulong)(uint)turn << 32) | (uint)mobId);
+        return new DeterministicRandom(seed.Value ^ streamKey ^ turnKey);
+    }
+
     public ulong NextUInt64()
     {
         unchecked
