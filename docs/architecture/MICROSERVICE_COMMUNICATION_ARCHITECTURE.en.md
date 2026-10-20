@@ -148,7 +148,7 @@ idempotency key when retrying is safe.
 | Dungeon → Combat | `CreateCombat` | A combat room is entered; command, run, room/encounter and participant context | `CombatId` + initial snapshot. Same room cause must not create two combats. |
 | Combat → Player | `GetCombatantSnapshot` | Combat initialization; hero/participant IDs | Immutable relevant hero snapshot. Failure prevents safe initialization. |
 | Combat → Rewards | `GetCombatInventorySnapshot` | Combat initialization; hero IDs | Equipped inventory and consumable snapshot. Failure prevents safe initialization. |
-| Dungeon → Rewards | `GrantChestReward` | Open chest; command, run/room/chest cause, recipient | Persisted loot. Chest is not marked opened until confirmed. |
+| Dungeon → Rewards | `GenerateChestLoot` (gRPC) | Open chest; `command_id`, run, chest, floor and difficulty | Idempotently generated or replayed loot, including item list. Chest is not marked opened until confirmed. |
 | Combat → Rewards | `GrantCombatReward` | Win; command, combat/victory cause, recipients | Persisted loot before victory finalization. Final boss has final-boss reward only. |
 | Combat → Dungeon | `ReportCombatResult` | Combat finishes; command, combat, room and `Won`/`Lost` result | Updated room/run state. A win is reported only after reward confirmation. |
 
@@ -258,14 +258,20 @@ sequenceDiagram
   participant F as Game client
   participant D as DungeonHub / Dungeon
   participant R as Rewards
-  F->>D: OpenChest(CommandId, chestId)
-  D->>D: Authorize and verify chest availability
-  D->>R: gRPC GrantChestReward(CommandId, chest cause)
-  R->>R: Create or return idempotent entitlement
-  R-->>D: Confirmed loot
-  D->>D: Mark chest opened
-  D-->>F: DungeonStateChanged(snapshot with loot)
+  F->>D: POST /dungeon-runs/{runId}/chests/{elementId}/open
+  D->>D: Authorize and verify the chest in the 3x3 area
+  D->>D: Derive a deterministic command/chest identity
+  D->>R: gRPC GenerateChestLoot(command_id, run, chest, floor, difficulty)
+  R->>R: Create or replay idempotent loot
+  R-->>D: Confirmed loot + items
+  D->>D: Mark chest opened in the transaction
+  D-->>F: 200 { run, loot }
 ```
+
+Dungeon uses the same stable UUIDv5 for `command_id` and `chest_id`, derived
+from the run, Reward's one-based floor and the map element id. Until Reward's
+reviewed contract package is published, its proto is copied locally under
+`Dungeon.Infrastructure` and must remain strictly synchronized with its source.
 
 ### Winning combat
 

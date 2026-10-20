@@ -23,3 +23,14 @@ message PlayerCreated {
   int32 health = 4;
   int32 max_health = 5;
 }
+
+// A chest was opened by its owner in a dungeon run. Rewards owns the generated
+// loot; Dungeon only supplies the stable cause and marks the chest opened.
+message ChestOpened {
+  string run_id = 1;
+  string game_session_id = 2;
+  string seed = 3;
+  int32 floor = 4;
+  int32 element_id = 5;
+  string opened_at_utc = 6;
+}

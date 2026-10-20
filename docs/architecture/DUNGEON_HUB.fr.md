@@ -195,6 +195,7 @@ sequenceDiagram
 ## 7. Pas encore en place
 
 - Autorisation par participant (roster de la `GameSession`) : multijoueur.
-- Salles et coffres (`OpenChest` → gRPC `GrantChestReward`).
+- Orchestration des combats de salle ; l'ouverture des coffres passe déjà par
+  l'API HTTP Dungeon puis par `GenerateChestLoot` en gRPC vers Reward.
 - gRPC `ReportCombatResult` et `AbandonDungeonRun`.
 - Backplane Redis : un seul replica Dungeon.

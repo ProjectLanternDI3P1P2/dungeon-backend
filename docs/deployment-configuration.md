@@ -57,6 +57,11 @@ injecté dans `NuGetPackageSourceCredentials_github`, au format
 `Username=<login>;Password=<token>;ValidAuthenticationTypes=Basic`.
 Ne pas mettre de jeton dans un ARG, une image ou un fichier versionné.
 
+Exception temporaire : le contrat `reward_chest_loot_v1.proto` revu est copié
+dans `Dungeon.Infrastructure/Grpc/Protos` tant que sa nouvelle version NuGet
+n'est pas publiée. Cette copie évite une dépendance CI vers un package absent ;
+elle devra être supprimée au profit de `Reward.Contracts` dès sa publication.
+
 ```sh
 docker build --secret id=github_packages_credentials,env=GITHUB_PACKAGES_CREDENTIALS .
 ```

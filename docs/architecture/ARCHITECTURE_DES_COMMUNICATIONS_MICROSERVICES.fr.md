@@ -126,7 +126,7 @@ Les contrats gRPC sont des packages NuGet Protobuf versionnés et possédés par
 | Dungeon → Combat | `CreateCombat` | Salle combat ; commande, run, salle/rencontre, participants | `CombatId` + snapshot. Une cause de salle ne crée pas deux combats. |
 | Combat → Player | `GetCombatantSnapshot` | Initialisation ; héros/participants | Snapshot héros immuable ; échec interdit l'initialisation sûre. |
 | Combat → Rewards | `GetCombatInventorySnapshot` | Initialisation ; héros | Snapshot équipement/consommables ; échec interdit l'initialisation sûre. |
-| Dungeon → Rewards | `GrantChestReward` | Coffre ; commande, cause run/salle/coffre, destinataire | Loot persisté. Coffre ouvert après confirmation. |
+| Dungeon → Rewards | `GenerateChestLoot` (gRPC) | Ouverture d'un coffre ; `command_id`, run, coffre, étage et difficulté | Loot généré ou rejoué de façon idempotente, avec la liste des items. Le coffre Dungeon est ouvert après confirmation. |
 | Combat → Rewards | `GrantCombatReward` | Victoire ; commande, combat/cause, destinataires | Loot avant finalisation. Boss final : reward de boss seulement. |
 | Combat → Dungeon | `ReportCombatResult` | Fin ; commande, combat, salle, `Won`/`Lost` | Transition salle/run. `Won` après reward confirmée. |
 
@@ -228,14 +228,20 @@ sequenceDiagram
   participant F as Client de jeu
   participant D as DungeonHub / Dungeon
   participant R as Rewards
-  F->>D: OpenChest(CommandId, chestId)
-  D->>D: Autorise et vérifie coffre disponible
-  D->>R: gRPC GrantChestReward(CommandId, cause coffre)
-  R->>R: Crée ou retrouve droit idempotent
-  R-->>D: Loot confirmé
-  D->>D: Marque coffre ouvert
-  D-->>F: DungeonStateChanged(snapshot avec loot)
+  F->>D: POST /dungeon-runs/{runId}/chests/{elementId}/open
+  D->>D: Autorise et vérifie le coffre dans la zone 3x3
+  D->>D: Dérive une identité déterministe de commande/coffre
+  D->>R: gRPC GenerateChestLoot(command_id, run, coffre, étage, difficulté)
+  R->>R: Crée ou retrouve le loot idempotent
+  R-->>D: Loot confirmé + items
+  D->>D: Marque le coffre ouvert dans la transaction
+  D-->>F: 200 { run, loot }
 ```
+
+Dungeon utilise le même UUID v5 pour `command_id` et `chest_id`, dérivé de la
+run, de l'étage Reward (1 à 4) et de l'identifiant d'élément. Tant que le package
+NuGet du contrat revu n'est pas publié, le proto Reward est copié localement dans
+`Dungeon.Infrastructure` et doit rester strictement synchronisé avec sa source.
 
 ### Combat gagné
 

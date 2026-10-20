@@ -2,6 +2,7 @@ using Dungeon.Application.Features.DungeonRunUseCase.CreateDungeonRun;
 using Dungeon.Application.Features.DungeonRunUseCase.DefeatFloorBoss;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunByGameSessionId;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
+using Dungeon.Application.Features.DungeonRunUseCase.OpenChest;
 using Dungeon.Presentation.DTO;
 using Dungeon.Presentation.Hubs;
 using MediatR;
@@ -11,7 +12,7 @@ using ILogger = Serilog.ILogger;
 
 namespace Dungeon.Presentation.Controllers;
 
-/// <summary>Non-gameplay access to runs. Moving goes through <see cref="DungeonHub"/>.</summary>
+/// <summary>Run access and chest opening. Moving goes through <see cref="DungeonHub"/>.</summary>
 [ApiController]
 [Route("api/v1/dungeon-runs")]
 public sealed class DungeonRunController(
@@ -87,5 +88,30 @@ public sealed class DungeonRunController(
             run.Status
         );
         return Ok(run);
+    }
+
+    /// <summary>
+    /// Opens the chest item on or next to the hero. Rewards generates the contents synchronously;
+    /// Dungeon returns that list while retaining ownership of the opened state.
+    /// </summary>
+    [HttpPost("{runId:guid}/chests/{elementId:int}/open")]
+    public async Task<IActionResult> OpenChest(
+        Guid runId,
+        int elementId,
+        CancellationToken cancellationToken
+    )
+    {
+        logger.Information(
+            "Received request to open chest element {ElementId} in dungeon run {RunId}.",
+            elementId,
+            runId
+        );
+
+        var loot = await mediator.Send(new OpenChestCommand(runId, elementId), cancellationToken);
+        var run = await mediator.Send(new GetDungeonRunByIdQuery(runId), cancellationToken);
+
+        await dungeonHub.Clients.Group(DungeonHub.GroupName(runId)).DungeonStateChanged(run);
+
+        return Ok(new OpenChestResponse(run, loot));
     }
 }

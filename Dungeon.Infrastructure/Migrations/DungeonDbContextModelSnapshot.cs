@@ -96,6 +96,25 @@ namespace Dungeon.Infrastructure.Migrations
                     b.ToTable("DungeonRuns", (string)null);
                 });
 
+            modelBuilder.Entity("Dungeon.Domain.Entities.OpenedChest", b =>
+                {
+                    b.Property<Guid>("DungeonRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Floor")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ElementId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("DungeonRunId", "Floor", "ElementId");
+
+                    b.ToTable("OpenedChests", (string)null);
+                });
+
             modelBuilder.Entity("Dungeon.Domain.Entities.Player", b =>
                 {
                     b.Property<Guid>("Id")
@@ -183,6 +202,20 @@ namespace Dungeon.Infrastructure.Migrations
                         });
 
                     b.Navigation("Mobs");
+                });
+
+            modelBuilder.Entity("Dungeon.Domain.Entities.OpenedChest", b =>
+                {
+                    b.HasOne("Dungeon.Domain.Entities.DungeonRun", null)
+                        .WithMany("OpenedChests")
+                        .HasForeignKey("DungeonRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Dungeon.Domain.Entities.DungeonRun", b =>
+                {
+                    b.Navigation("OpenedChests");
                 });
 #pragma warning restore 612, 618
         }
