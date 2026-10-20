@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.1.0...v2.2.0) (2026-10-20)
+
+
+### Added
+
+* **api:** move hero moves from REST to DungeonHub ([938bc83](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/938bc8341e2587ffa6d7a35ed2f8a248d2246421))
+* **hub:** add DungeonHub for run gameplay over SignalR ([e89a6c1](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/e89a6c125357a1072633060b86c3925ea6042b1b))
+
 ## [2.1.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.0.0...v2.1.0) (2026-10-20)
 
 
