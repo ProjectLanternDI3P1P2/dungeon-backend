@@ -1,5 +1,52 @@
 # Changelog
 
+## [2.2.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.1.0...v2.2.0) (2026-10-20)
+
+
+### Added
+
+* **api:** move hero moves from REST to DungeonHub ([938bc83](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/938bc8341e2587ffa6d7a35ed2f8a248d2246421))
+* **hub:** add DungeonHub for run gameplay over SignalR ([e89a6c1](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/e89a6c125357a1072633060b86c3925ea6042b1b))
+
+## [2.1.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.0.0...v2.1.0) (2026-10-20)
+
+
+### Added
+
+* **api:** expose the mob kind of enemy elements ([a210bff](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/a210bff4636f1d4a125d0dae95badcc91fb099dc))
+* **api:** expose the mobs of the run ([88cac73](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/88cac736b3706b43a1076b762d25efee09dac10b))
+* **generation:** bump the dungeon generator to version 5 ([32a7b98](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/32a7b98e0c598f15013b6c87ea16c50a012dd50d))
+* **generation:** give every enemy silhouette a mob kind ([af68acf](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/af68acfc4ad8a60a2c6421645ac24b8717396912))
+* **generation:** leave combat-room loot to Reward ([3eb09a4](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/3eb09a40bb066cec04ca7b3e40befbd87fa3d528))
+* **generation:** leave the boss alone in its room ([c0a863d](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/c0a863d61c4b8eecc489fe620864aff4ca9b26ca))
+* **generation:** place mob silhouettes procedurally ([961410d](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/961410d3d2bca27424474270d7e725db7c02be9b))
+* **generation:** typed mob silhouettes placed by the generator ([b7eed46](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/b7eed46f855369bedb58b8c8c5fd504b7f7420d9))
+* **generation:** validate that only enemies carry a mob kind ([33dc415](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/33dc41583cf0f9e798dfe415f40bd9be0b8a05e6))
+* Implement Dungeon Run functionality with gRPC support ([edb7038](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/edb70384d121b3d30bf185e760e4869329175d0b))
+* **mobs:** chase the hero once in aggro range ([c0b1e4c](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/c0b1e4c1f5af494c0d102db9c9b9ebea328d2ad8))
+* **mobs:** configure each mob kind under Dungeon:Mobs ([5de83af](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/5de83af9a283ce717520f29d891f4cf47a2aa54c))
+* **mobs:** keep the mobs of the current floor in the run ([e903e1e](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/e903e1ef62ca7eacc643a4dff11f203a47e11e95))
+* **mobs:** kill a mob on contact until Combat exists ([6efdfa4](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/6efdfa4a5f7e339ca3901f4a340222963401ca1b))
+* **mobs:** let mages jump diagonally to the best tile ([0e2f9c5](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/0e2f9c502f6fd1421c1c19a40bb10b312dadb6ea))
+* **mobs:** move the mob silhouettes turn by turn ([e67dcf4](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/e67dcf487dfa941335b34c77270f9f32511f0de1))
+* **mobs:** report the mobs killed this turn where they fell ([37f5d1d](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/37f5d1d5013c4bbb6b5fdc667543769807d83394))
+* **mobs:** start the fight when the hero walks into a mage's glow ([a4ccde5](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/a4ccde5b3aca0ff633ba7db70408b9c15ccd41f5))
+* **mobs:** teleport mages to an announced tile ([bd67e6a](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/bd67e6a41acefdad8646ff1a64c5eb91ea904a51))
+* **mobs:** wander or hold the nearest door when idle ([6359112](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/635911214bfc49fe87b1d369e44100ab43d9d533))
+* separate package and local Docker builds ([818ddc0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/818ddc0ad67208928e46f30f2dd2384a38326342))
+* separate package and local Docker builds ([a2e8507](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/a2e850746553a8743cb700c39d81d05a975de376))
+
+
+### Fixed
+
+* **mobs:** keep the mobs in element order after a reload ([64edd2d](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/64edd2df5d34552bec0c405c55fe43ab95cecb8f))
+
+
+### Changed
+
+* **generation:** drop the enemy spots from the room templates ([cffacb8](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/cffacb8addf75f679ead9452d7ee9c866121ae6f))
+* **mobs:** pass the mob rules to every move ([81fe9c2](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/81fe9c2d7aa5d2d36a7876a0d82d8664817c777c))
+
 ## [2.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v1.2.0...v2.0.0) (2026-10-02)
 
 

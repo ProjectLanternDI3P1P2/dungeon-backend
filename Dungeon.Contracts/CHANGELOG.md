@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/contracts-v3.0.0...contracts-v4.0.0) (2026-10-20)
+
+
+### Added
+
+* Implement Dungeon Run functionality with gRPC support ([edb7038](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/edb70384d121b3d30bf185e760e4869329175d0b))
+
 ## [3.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/contracts-v2.0.0...contracts-v3.0.0) (2026-10-02)
 
 
