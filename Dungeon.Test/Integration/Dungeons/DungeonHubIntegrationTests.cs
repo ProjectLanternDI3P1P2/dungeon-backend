@@ -89,6 +89,28 @@ public sealed class DungeonHubIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task JoinDungeon_AfterAMove_ReturnsTheTilesTheHeroStoodOn()
+    {
+        // Arrange
+        GetDungeonRunByIdResult run = await CreateRunAsync();
+        (string direction, int dx, int dy) = await FindFloorStepAsync(run);
+        int width = (await GetMapAsync(run)).Width;
+        await MoveAsync(Guid.NewGuid(), run.Id, direction);
+
+        // Act: what a reloaded page gets back, read from the database.
+        DungeonCommandResult result = await JoinAsync(run.Id);
+
+        // Assert
+        byte[] tiles = Convert.FromBase64String(result.Snapshot!.VisitedTiles);
+        bool Visited(int x, int y) =>
+            (tiles[(y * width + x) / 8] & (1 << ((y * width + x) % 8))) != 0;
+        Visited(run.Hero.X, run.Hero.Y).Should().BeTrue();
+        Visited(run.Hero.X + dx, run.Hero.Y + dy).Should().BeTrue();
+        tiles.Sum(b => System.Numerics.BitOperations.PopCount(b)).Should().Be(2);
+        result.Snapshot.DiscoveredRoomIds.Should().Equal(run.DiscoveredRoomIds);
+    }
+
+    [Fact]
     public async Task MoveHero_UnknownDirection_IsRefusedAsInvalid()
     {
         // Arrange
@@ -145,16 +167,21 @@ public sealed class DungeonHubIntegrationTests : IAsyncLifetime
         GetDungeonRunByIdResult run
     )
     {
+        GetDungeonMapResult map = await GetMapAsync(run);
+        return new[] { ("east", 1, 0), ("west", -1, 0), ("south", 0, 1) }.First(move =>
+            map.Rows[run.Hero.Y + move.Item3][run.Hero.X + move.Item2] == '.'
+        );
+    }
+
+    private async Task<GetDungeonMapResult> GetMapAsync(GetDungeonRunByIdResult run)
+    {
         using HttpClient client = factory!.CreateClient();
-        GetDungeonMapResult map = (
+        return (
             await client.GetFromJsonAsync<GetDungeonMapResult>(
                 $"/api/v1/dungeons/{run.Seed}/map",
                 TestContext.Current.CancellationToken
             )
         )!;
-        return new[] { ("east", 1, 0), ("west", -1, 0), ("south", 0, 1) }.First(move =>
-            map.Rows[run.Hero.Y + move.Item3][run.Hero.X + move.Item2] == '.'
-        );
     }
 
     private Task<DungeonCommandResult> JoinAsync(Guid dungeonId) =>

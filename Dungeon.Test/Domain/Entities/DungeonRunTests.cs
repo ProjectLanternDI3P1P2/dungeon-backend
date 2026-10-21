@@ -70,6 +70,49 @@ public class DungeonRunTests
         act.Should().Throw<InvalidMoveException>().Which.Target.Should().Be(new Position(1, 0));
         run.HeroPosition.Should().Be(new Position(0, 0));
         run.Turn.Should().Be(0);
+        run.HasVisited(new Position(1, 0), dungeon.Floors[0]).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Start_VisitsOnlyTheEntrance()
+    {
+        // Arrange
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        DungeonFloor floor = dungeon.Floors[0];
+
+        // Act
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+
+        // Assert
+        run.VisitedTiles.Length.Should().Be((floor.Width * floor.Height + 7) / 8);
+        run.HasVisited(floor.Entrance, floor).Should().BeTrue();
+        VisitedCount(run).Should().Be(1);
+    }
+
+    [Fact]
+    public void MoveHero_RecordsEveryTileTheHeroStoodOn()
+    {
+        // Arrange
+        GeneratedDungeon dungeon = DungeonTestData.SingleRowDungeon(
+            CellType.Floor,
+            CellType.Floor,
+            CellType.Floor,
+            CellType.Floor
+        );
+        DungeonFloor floor = dungeon.Floors[0];
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+
+        // Act: there and back, the tiles are only counted once.
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
+        run.MoveHero(Direction.East, dungeon, MobRules.Default);
+        run.MoveHero(Direction.West, dungeon, MobRules.Default);
+
+        // Assert
+        run.HasVisited(new Position(0, 0), floor).Should().BeTrue();
+        run.HasVisited(new Position(1, 0), floor).Should().BeTrue();
+        run.HasVisited(new Position(2, 0), floor).Should().BeTrue();
+        run.HasVisited(new Position(3, 0), floor).Should().BeFalse();
+        run.VisitedTiles.ToArray().Should().Equal(0b0111);
     }
 
     [Theory]
@@ -211,6 +254,9 @@ public class DungeonRunTests
         run.IsFloorBossDefeated.Should().BeFalse();
         run.Turn.Should().Be(turn + 1);
         run.Status.Should().Be(DungeonRunStatus.Active);
+        // The tiles of the floor above are forgotten: only the arrival is visited.
+        run.HasVisited(dungeon.Floors[1].Entrance, dungeon.Floors[1]).Should().BeTrue();
+        VisitedCount(run).Should().Be(1);
     }
 
     [Fact]
@@ -254,4 +300,7 @@ public class DungeonRunTests
 
     private static void WalkTo(DungeonRun run, GeneratedDungeon dungeon, Position target) =>
         DungeonTestData.WalkTo(run, dungeon, target);
+
+    private static int VisitedCount(DungeonRun run) =>
+        run.VisitedTiles.ToArray().Sum(tiles => System.Numerics.BitOperations.PopCount(tiles));
 }

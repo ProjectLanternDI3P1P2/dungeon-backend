@@ -14,6 +14,7 @@ public sealed class DungeonRun
 {
     private readonly List<RunMob> _mobs = [];
     private List<int> _discoveredRoomIds = [];
+    private byte[] _visitedTiles = [];
 
     // Required by EF Core.
     private DungeonRun() { }
@@ -57,6 +58,13 @@ public sealed class DungeonRun
 
     /// <summary>The rooms of the current floor a hero of the party has set foot in.</summary>
     public IReadOnlyList<int> DiscoveredRoomIds => _discoveredRoomIds;
+
+    /// <summary>
+    /// The tiles of the current floor a hero of the party has stood on, one bit per tile in
+    /// row order: tile <c>i = y * width + x</c> is bit <c>i % 8</c> of byte <c>i / 8</c>. The
+    /// client rebuilds its fog of war from them. Reset on arrival at a new floor.
+    /// </summary>
+    public ReadOnlyMemory<byte> VisitedTiles => _visitedTiles;
 
     public Position HeroPosition => new(HeroX, HeroY);
 
@@ -127,6 +135,7 @@ public sealed class DungeonRun
 
         HeroX = target.X;
         HeroY = target.Y;
+        Visit(target, floor);
         MobTurn.Play(this, floor, mobRules);
         Turn++;
 
@@ -205,6 +214,31 @@ public sealed class DungeonRun
         return dungeon.Floors[CurrentFloor];
     }
 
+    /// <summary>Whether a hero of the party has stood on this tile of the current floor.</summary>
+    public bool HasVisited(Position tile, DungeonFloor floor)
+    {
+        int index = tile.Y * floor.Width + tile.X;
+        return floor.Contains(tile)
+            && index / 8 < _visitedTiles.Length
+            && (_visitedTiles[index / 8] & (1 << (index % 8))) != 0;
+    }
+
+    private void Visit(Position tile, DungeonFloor floor)
+    {
+        if (HasVisited(tile, floor))
+        {
+            return;
+        }
+
+        // A new array rather than a bit flipped in place, so that EF Core sees the change.
+        // A run started before the tiles were recorded has none yet.
+        int size = (floor.Width * floor.Height + 7) / 8;
+        byte[] tiles = _visitedTiles.Length == size ? [.. _visitedTiles] : new byte[size];
+        int index = tile.Y * floor.Width + tile.X;
+        tiles[index / 8] |= (byte)(1 << (index % 8));
+        _visitedTiles = tiles;
+    }
+
     internal void Discover(int roomId)
     {
         if (!_discoveredRoomIds.Contains(roomId))
@@ -215,7 +249,8 @@ public sealed class DungeonRun
 
     /// <summary>
     /// The mobs of the floor the party arrives on take over from those of the floor above:
-    /// one per enemy element, on its spawn tile. Only the arrival room is discovered.
+    /// one per enemy element, on its spawn tile. Only the arrival room is discovered, and only
+    /// the entrance visited.
     /// </summary>
     private void ArriveOn(DungeonFloor floor)
     {
@@ -224,5 +259,7 @@ public sealed class DungeonRun
             floor.Elements.Where(element => element.Type == ElementType.Enemy).Select(RunMob.Spawn)
         );
         _discoveredRoomIds = floor.GetRoomId(floor.Entrance) is int room ? [room] : [];
+        _visitedTiles = [];
+        Visit(floor.Entrance, floor);
     }
 }

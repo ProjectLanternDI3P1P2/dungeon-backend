@@ -30,6 +30,16 @@ public sealed class GetDungeonRunByIdResult
     /// <summary>The mobs that died on this turn, on the tile they fell on.</summary>
     public IReadOnlyList<MobResult> KilledMobs { get; init; } = [];
 
+    /// <summary>The rooms of the current floor the party has discovered: their mobs know it is here.</summary>
+    public IReadOnlyList<int> DiscoveredRoomIds { get; init; } = [];
+
+    /// <summary>
+    /// The tiles of the current floor a hero has stood on, as a base64 bitset in row order
+    /// (tile <c>i = y * width + x</c> is bit <c>i % 8</c> of byte <c>i / 8</c>): the client
+    /// rebuilds its fog of war from it after a reload.
+    /// </summary>
+    public string VisitedTiles { get; init; } = string.Empty;
+
     public DateTimeOffset StartedAt { get; init; }
 
     /// <param name="dungeon">The dungeon of the run, rebuilt from its seed.</param>
@@ -59,6 +69,8 @@ public sealed class GetDungeonRunByIdResult
                 .Mobs.Where(mob => !mob.IsActive && mob.KilledOnTurn == run.Turn)
                 .Select(MobResult.From)
                 .ToList(),
+            DiscoveredRoomIds = [.. run.DiscoveredRoomIds],
+            VisitedTiles = Convert.ToBase64String(run.VisitedTiles.Span),
             StartedAt = run.StartedAt,
         };
     }
