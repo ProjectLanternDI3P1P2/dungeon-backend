@@ -1,328 +1,136 @@
-# Dungeon Continuous Delivery Procedure
+# Dungeon CD Procedure
 
 ## 1. Purpose
 
-This document describes the Continuous Delivery (CD) workflow used by the **Dungeon backend**.
+This document describes the Continuous Delivery (CD) workflow of the **Dungeon** backend.
 
-The CD workflow is separated from CI so Docker image publication runs are clearly visible in GitHub Actions.
+The CD is deliberately **separate from CI**, so delivery runs are visible on their own in GitHub Actions. Its role is to take the code that has been validated by CI and deliver the Docker image of the service to the platform.
 
-Its purpose is to:
-- build the Dungeon Docker image;
-- publish it to the private Harbor registry;
-- publish development tags from `dev`;
-- publish release tags created from application releases;
-- verify the published image;
-- provide a delivery summary with tags and digest.
+The workflow itself is very small: it does not contain the build logic. It calls a **shared reusable workflow** maintained in the `platform-gitops` repository, so that every squad delivers its service in the same way.
 
-## 2. Workflow file
+## 2. Where the pieces live
 
-The CD workflow is stored in:
+| Item | Location |
+|------|----------|
+| Dungeon CD workflow | `.github/workflows/cd.yaml` (Dungeon repository) |
+| Shared delivery logic | `ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml` |
+| Image registry | Harbor: `registry.lantern.diiage` |
+| Dungeon image | `registry.lantern.diiage/lantern/dungeon-backend` |
+| Dockerfile | See `Dungeon_Dockerfile_Procedure.md` |
 
-```text
-.github/workflows/cd.yaml
-```
-
-## 3. Docker registry
-
-Dungeon images are published to Harbor:
-
-```text
-registry.lantern.diiage
-```
-
-Image name:
-
-```text
-registry.lantern.diiage/lantern/dungeon-backend
-```
-
-The workflow uses:
+## 3. The workflow
 
 ```yaml
-env:
-  REGISTRY: registry.lantern.diiage
-  IMAGE: registry.lantern.diiage/lantern/dungeon-backend
+name: CD - Publish and promote image
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  delivery:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: read
+    uses: ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml@06761f0b31acaa488e39c909bcb422a1649924d7 # main
+    with:
+      application: dungeon
+      image: registry.lantern.diiage/lantern/dungeon-backend
+    secrets:
+      HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
+      HARBOR_TOKEN: ${{ secrets.HARBOR_TOKEN }}
+      GITOPS_DISPATCH_TOKEN: ${{ secrets.GITOPS_DISPATCH_TOKEN }}
 ```
 
-## 4. Triggers
+## 4. How it works
 
-The workflow can be started manually with:
+### 4.1 Triggers
 
-```yaml
-workflow_dispatch:
-```
+| Trigger | Effect |
+|---------|--------|
+| Push on `main` | Starts a delivery |
+| Push of a tag `v*` (release, e.g. `v1.2.0`) | Starts a delivery for the release |
+| Manual run (`workflow_dispatch`) | Allowed **only from `main`**; the `if:` condition skips the job on any other branch |
 
-Manual publication is restricted to the `dev` branch.
-
-The workflow also starts automatically for application release tags:
-
-```yaml
-push:
-  tags: ["v*"]
-```
-
-Examples:
-
-```text
-v1.0.0
-v1.1.0
-v2.0.0
-```
-
-Contract tags such as `contracts-v*` are not intended to publish the Dungeon application image.
-
-## 5. Development publication
-
-A manual run on `dev` publishes:
-
-```text
-registry.lantern.diiage/lantern/dungeon-backend:dev-latest
-```
-
-The workflow also creates an immutable digest-based tag:
-
-```text
-registry.lantern.diiage/lantern/dungeon-backend:dev-<digest>
-```
-
-`dev-latest` can move to a newer development image, while the digest-based tag always identifies one exact image.
-
-## 6. Release publication
-
-When an application release tag such as `v1.2.0` is created, the workflow publishes:
-
-```text
-registry.lantern.diiage/lantern/dungeon-backend:v1.2.0
-registry.lantern.diiage/lantern/dungeon-backend:main-latest
-```
-
-Both tags are created from the same Docker build and point to the same image digest.
-
-## 7. Concurrency
-
-The workflow uses:
+### 4.2 Concurrency
 
 ```yaml
 concurrency:
-  group: cd-docker-${{ github.ref }}
+  group: cd-${{ github.ref }}
   cancel-in-progress: true
 ```
 
-This prevents unnecessary concurrent publication runs for the same Git reference.
+If a newer run starts on the same branch or tag, the older run is cancelled. This avoids delivering an outdated version after a newer one.
 
-## 8. Runner
+### 4.3 Delegation to the shared workflow
 
-The publication job runs on:
+The job uses `uses: ...@<commit SHA>` to call the reusable workflow. It passes:
 
-```yaml
-runs-on: lantern-k3s-builders
-```
+- `application: dungeon`: the name of the application being delivered
+- `image: registry.lantern.diiage/lantern/dungeon-backend`: the target image in Harbor
 
-This runner is used by the Lantern infrastructure and can access the private Harbor registry.
+The reusable workflow is the single place where the publish and promote steps are implemented, and it is maintained centrally. As indicated by its name and by the secrets it receives, it publishes the Dungeon image to Harbor and then promotes the new version through the GitOps repository.
 
-## 9. Checkout
+### 4.4 Secrets
 
-The workflow checks out the repository source code with `actions/checkout`.
+| Secret | Used for |
+|--------|----------|
+| `HARBOR_USERNAME` / `HARBOR_TOKEN` | Authentication to the Harbor registry to push the image |
+| `GITOPS_DISPATCH_TOKEN` | Triggering the promotion in the GitOps repository |
 
-Credentials are not persisted:
+Secrets are stored in the GitHub repository settings and passed **explicitly** to the reusable workflow (not inherited implicitly). They never appear in the code.
 
-```yaml
-with:
-  persist-credentials: false
-```
-
-## 10. Image tag computation
-
-The workflow reads the current Git commit SHA:
-
-```bash
-sha="$(git rev-parse HEAD)"
-```
-
-For a release tag, it creates:
-
-```text
-vX.Y.Z
-main-latest
-```
-
-For a manual development run, it creates:
-
-```text
-dev-latest
-```
-
-## 11. Docker Buildx
-
-Docker Buildx is configured before the image build.
-
-The workflow uses:
+### 4.5 Permissions
 
 ```yaml
-driver: docker
+permissions:
+  contents: read
+  packages: read
 ```
 
-The Lantern runner Docker daemon trusts Harbor's private CA.
+The job gets read-only access. `packages: read` allows the build to fetch private packages from GitHub Packages (used by the Dockerfile through a BuildKit secret).
 
-## 12. Harbor authentication
+### 4.6 Pinned reusable workflow
 
-The workflow authenticates to Harbor with GitHub secrets:
+The reusable workflow is referenced by its full **commit SHA** (the `# main` comment only tells which branch it came from). Pinning prevents a change on the `main` branch of `platform-gitops` from silently altering how Dungeon is delivered, and protects against supply-chain tampering. Updating the pin is a deliberate action, done with a pull request.
 
-```yaml
-registry: ${{ env.REGISTRY }}
-username: ${{ secrets.HARBOR_USERNAME }}
-password: ${{ secrets.HARBOR_TOKEN }}
+## 5. Delivery flow
+
+```
+push on main / tag vX.Y.Z / manual run (main only)
+                 |
+                 v
+          GitHub Actions
+     (cd.yaml, concurrency control)
+                 |
+                 v
+     Shared workflow: publish-and-promote
+     (platform-gitops, pinned by SHA)
+                 |
+        +--------+---------+
+        |                  |
+        v                  v
+  Build & publish     Promote the new version
+  image to Harbor     through the GitOps repository
+  (dungeon-backend)
 ```
 
-Required secrets:
+## 6. How to use it
 
-```text
-HARBOR_USERNAME
-HARBOR_TOKEN
-```
+- **Normal flow**: merge a pull request into `main`; CD starts automatically.
+- **Release**: when a release tag `vX.Y.Z` is created, CD delivers that release.
+- **Manual delivery**: in GitHub, go to *Actions*, select *CD - Publish and promote image*, then *Run workflow* on the `main` branch.
+- **Follow a run**: open the run in the *Actions* tab and check the logs of the `delivery` job.
 
-Secret values must never be committed to the repository.
+## 7. Points to keep in mind
 
-## 13. Build and push
-
-The workflow uses `docker/build-push-action` to build and push the image.
-
-Main settings:
-
-```yaml
-context: .
-platforms: linux/amd64
-push: true
-tags: ${{ steps.image.outputs.tags }}
-```
-
-The workflow also adds OCI metadata linking the image to its GitHub repository and Git commit.
-
-## 14. Digest tag
-
-For a `dev` publication, the workflow validates that the returned image digest follows the expected `sha256` format.
-
-It then creates:
-
-```text
-dev-<digest>
-```
-
-The workflow checks that the digest of this new tag matches the original image digest exactly.
-
-If it does not match, the workflow fails.
-
-## 15. Published image verification
-
-After publication, every generated image tag is inspected.
-
-For development:
-
-```text
-dev-latest
-dev-<digest>
-```
-
-For a release:
-
-```text
-vX.Y.Z
-main-latest
-```
-
-If an image cannot be inspected, the workflow fails.
-
-## 16. Delivery summary
-
-At the end of a successful run, GitHub Actions writes a summary containing:
-- the publication source;
-- the Docker image digest;
-- all published tags.
-
-Example:
-
-```text
-Docker image published
-
-Source: dev commit <sha>
-Digest: sha256:<digest>
-
-Tags:
-- registry.lantern.diiage/lantern/dungeon-backend:dev-latest
-- registry.lantern.diiage/lantern/dungeon-backend:dev-<digest>
-```
-
-## 17. Development flow
-
-```text
-Developer
-   |
-   v
-feature branch
-   |
-   v
-Pull Request to dev
-   |
-   v
-CI validation
-   |
-   v
-Merge into dev
-   |
-   v
-Manual CD workflow
-   |
-   v
-lantern-k3s-builders
-   |
-   v
-Build Docker image
-   |
-   v
-Harbor
-   |
-   +-- dungeon-backend:dev-latest
-   |
-   +-- dungeon-backend:dev-<digest>
-```
-
-## 18. Release flow
-
-```text
-dev
- |
- v
-Promotion to main
- |
- v
-Release Please
- |
- v
-Application tag vX.Y.Z
- |
- v
-CD workflow
- |
- v
-Build Docker image
- |
- v
-Harbor
- |
- +-- dungeon-backend:vX.Y.Z
- |
- +-- dungeon-backend:main-latest
-```
-
-## 19. Result
-
-The Dungeon CD workflow provides:
-- development publication with `dev-latest`;
-- immutable development images with `dev-<digest>`;
-- versioned releases with `vX.Y.Z`;
-- a latest release pointer with `main-latest`;
-- publication to the private Harbor registry;
-- digest verification;
-- traceability between Docker images and Git commits.
-
-The workflow publishes Docker images only. Deployment to Kubernetes or another runtime is handled separately.
+- The tags applied to the image, the exact promotion mechanism and the environments targeted are defined in the shared `publish-and-promote` workflow, not in the Dungeon repository. Refer to that repository for the details.
+- A push on `main` and a release tag each start their own run (the concurrency group depends on the ref), so both may deliver.
+- To change the delivery logic for all services, modify the shared workflow in `platform-gitops`, then update the SHA pin in each application's `cd.yaml`.
