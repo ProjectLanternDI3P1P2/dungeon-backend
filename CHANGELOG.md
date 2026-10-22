@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.3.1](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.3.0...v2.3.1) (2026-10-22)
+
+
+### Fixed
+
+* **cd:** publish images through groupe7 Harbor domain ([93b31ea](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/93b31eac97e13d9ffefdcd6b13183317c392542d))
+* **cd:** publish through private Harbor 10.4.111.200:18443 ([cc6fc00](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/cc6fc004a27fc836c8f95a99c6067bd20fdbaec6))
+* **cd:** publish through private Harbor endpoint ([5849e81](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/5849e81ab424bfdfd667fa85f4c430ff68110435))
+* **cd:** use shared workflow with new Harbor endpoint ([5893846](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/5893846020517b73215b6a5b5792929d04f672e1))
+
 ## [2.3.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.2.0...v2.3.0) (2026-10-21)
 
 
