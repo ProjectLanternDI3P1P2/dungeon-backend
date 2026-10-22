@@ -21,7 +21,8 @@ public static class InfrastructureServiceRegistration
 {
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
-        IConfiguration configuration
+        IConfiguration configuration,
+        bool isDevelopment = false
     )
     {
         DatabaseOptions databaseOptions =
@@ -34,14 +35,15 @@ public static class InfrastructureServiceRegistration
             .AddTransient(typeof(IPipelineBehavior<,>), typeof(CommandTransactionBehavior<,>))
             .AddEfConnection()
             .AddRepositories()
-            .AddDungeonGeneration(configuration)
+            .AddDungeonGeneration(configuration, isDevelopment)
             .AddGrpcConfiguration(configuration)
             .AddMessaging(configuration);
     }
 
     private static IServiceCollection AddDungeonGeneration(
         this IServiceCollection services,
-        IConfiguration configuration
+        IConfiguration configuration,
+        bool isDevelopment
     )
     {
         DungeonGenerationOptions options =
@@ -64,7 +66,8 @@ public static class InfrastructureServiceRegistration
             .AddSingleton(Options.Create(options))
             .AddSingleton(settings)
             .AddSingleton(mobRules)
-            .AddSingleton<DungeonGenerator>()
+            // The debug sandbox seed only means something in development.
+            .AddSingleton(new DungeonGenerator(sandboxEnabled: isDevelopment))
             .AddSingleton<IDungeonProvider, CachedDungeonProvider>()
             .AddSingleton<ISeedGenerator, CryptoSeedGenerator>();
     }
