@@ -60,7 +60,7 @@ public sealed class DungeonRun
     /// The mobs of the current floor, dead ones included, in element order: the order they act
     /// in. Sorted here because the database returns its rows in no particular order.
     /// </summary>
-    public IReadOnlyList<RunMob> Mobs => [.. _mobs.OrderBy(mob => mob.ElementId)];
+    public IReadOnlyList<RunMob> Mobs => [.. _mobs];
 
     /// <summary>The rooms of the current floor a hero of the party has set foot in.</summary>
     public IReadOnlyList<int> DiscoveredRoomIds => _discoveredRoomIds;
