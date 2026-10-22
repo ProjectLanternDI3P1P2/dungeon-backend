@@ -20,8 +20,12 @@ namespace Dungeon.Presentation.Hubs;
 /// Not yet authorized per participant: any connection may join a run it knows the id of.
 /// Restricting the group to the roster of the game session comes with multiplayer.
 /// </remarks>
-public sealed class DungeonHub(IMediator mediator, HubCommandCache commandCache, ILogger logger)
-    : Hub<IDungeonClient>
+public sealed class DungeonHub(
+    IMediator mediator,
+    HubCommandCache commandCache,
+    IHostEnvironment environment,
+    ILogger logger
+) : Hub<IDungeonClient>
 {
     public const string Route = "/hubs/dungeons";
 
@@ -83,9 +87,22 @@ public sealed class DungeonHub(IMediator mediator, HubCommandCache commandCache,
         );
     }
 
-    /// <summary>Debug only: refused on any run but one of the sandbox dungeon.</summary>
+    /// <summary>
+    /// Debug only: refused outside development, then on any run but one of the sandbox dungeon.
+    /// </summary>
     public Task<DungeonCommandResult> SpawnMob(SpawnMobRequest request)
     {
+        if (!environment.IsDevelopment())
+        {
+            return Task.FromResult(
+                DungeonCommandResult.Refuse(
+                    request.CommandId,
+                    DungeonCommandErrorCodes.Refused,
+                    "SpawnMob is only available in Development."
+                )
+            );
+        }
+
         logger.Information(
             "Command {CommandId}: spawn a {Kind} at ({X}, {Y}) in dungeon run {DungeonId}.",
             request.CommandId,
