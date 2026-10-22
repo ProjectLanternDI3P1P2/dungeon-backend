@@ -256,7 +256,9 @@ public static class DungeonTestData
                 {
                     elements.Add(
                         new DungeonElement(
-                            Guid.Parse($"00000000-0000-0000-0000-{elements.Count + 1:000000000000}"),
+                            Guid.Parse(
+                                $"00000000-0000-0000-0000-{elements.Count + 1:000000000000}"
+                            ),
                             ElementType.Enemy,
                             position,
                             RoomOf(position),
@@ -268,7 +270,9 @@ public static class DungeonTestData
                 {
                     elements.Add(
                         new DungeonElement(
-                            Guid.Parse($"00000000-0000-0000-0000-{elements.Count + 1:000000000000}"),
+                            Guid.Parse(
+                                $"00000000-0000-0000-0000-{elements.Count + 1:000000000000}"
+                            ),
                             ElementType.Trap,
                             position,
                             RoomOf(position)

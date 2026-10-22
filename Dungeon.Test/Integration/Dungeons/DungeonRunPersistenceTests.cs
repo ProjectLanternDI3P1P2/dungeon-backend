@@ -204,7 +204,9 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
 
         // Assert: UUIDs are unique per generated element, so floor changes never reuse rows;
         // every mob on the new floor starts with fresh state.
-        stored.Mobs.Should().OnlyContain(mob => spawns.Any(spawn => spawn.Id == mob.ElementId) && mob.Tick == 0);
+        stored
+            .Mobs.Should()
+            .OnlyContain(mob => spawns.Any(spawn => spawn.Id == mob.ElementId) && mob.Tick == 0);
         stored
             .Mobs.Select(mob =>
                 (
@@ -222,20 +224,22 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
             )
             .Should()
             .Equal(
-                spawns.OrderBy(spawn => spawn.Id).Select(spawn =>
-                    (
-                        spawn.Id,
-                        spawn.Kind!.Value,
-                        spawn.Position,
-                        spawn.RoomId,
-                        true,
-                        false,
-                        0,
-                        (Position?)null,
-                        (Position?)null,
-                        (int?)null
+                spawns
+                    .OrderBy(spawn => spawn.Id)
+                    .Select(spawn =>
+                        (
+                            spawn.Id,
+                            spawn.Kind!.Value,
+                            spawn.Position,
+                            spawn.RoomId,
+                            true,
+                            false,
+                            0,
+                            (Position?)null,
+                            (Position?)null,
+                            (int?)null
+                        )
                     )
-                )
             );
     }
 

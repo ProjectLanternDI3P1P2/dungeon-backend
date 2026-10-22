@@ -202,8 +202,11 @@ public static class DungeonValidator
 
     private static void CheckElements(DungeonFloor floor, List<string> violations)
     {
-        if (floor.Elements.Any(element => element.Id == Guid.Empty)
-            || floor.Elements.Select(element => element.Id).Distinct().Count() != floor.Elements.Count)
+        if (
+            floor.Elements.Any(element => element.Id == Guid.Empty)
+            || floor.Elements.Select(element => element.Id).Distinct().Count()
+                != floor.Elements.Count
+        )
         {
             violations.Add("element ids must be non-empty and unique");
         }
