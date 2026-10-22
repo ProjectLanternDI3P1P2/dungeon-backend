@@ -154,4 +154,19 @@ public static class DungeonContract
 
         return parsed;
     }
+
+    /// <summary>Parses a mob kind sent by a client: zombie, mage, goblin or bat, any case.</summary>
+    public static bool TryParseEnemyKind(string? value, out EnemyKind kind)
+    {
+        (bool parsed, kind) = value?.ToLowerInvariant() switch
+        {
+            "zombie" => (true, EnemyKind.Zombie),
+            "mage" => (true, EnemyKind.Mage),
+            "goblin" => (true, EnemyKind.Goblin),
+            "bat" => (true, EnemyKind.Bat),
+            _ => (false, default),
+        };
+
+        return parsed;
+    }
 }

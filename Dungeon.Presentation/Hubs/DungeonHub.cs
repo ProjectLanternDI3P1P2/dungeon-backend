@@ -1,6 +1,7 @@
 using Dungeon.Application.Abstractions;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
+using Dungeon.Application.Features.DungeonRunUseCase.SpawnMob;
 using Dungeon.Domain.Exceptions;
 using FluentValidation;
 using MediatR;
@@ -19,8 +20,12 @@ namespace Dungeon.Presentation.Hubs;
 /// Not yet authorized per participant: any connection may join a run it knows the id of.
 /// Restricting the group to the roster of the game session comes with multiplayer.
 /// </remarks>
-public sealed class DungeonHub(IMediator mediator, HubCommandCache commandCache, ILogger logger)
-    : Hub<IDungeonClient>
+public sealed class DungeonHub(
+    IMediator mediator,
+    HubCommandCache commandCache,
+    IHostEnvironment environment,
+    ILogger logger
+) : Hub<IDungeonClient>
 {
     public const string Route = "/hubs/dungeons";
 
@@ -79,6 +84,38 @@ public sealed class DungeonHub(IMediator mediator, HubCommandCache commandCache,
             request.CommandId,
             request.DungeonId,
             new MoveHeroCommand(request.DungeonId, request.Direction)
+        );
+    }
+
+    /// <summary>
+    /// Debug only: refused outside development, then on any run but one of the sandbox dungeon.
+    /// </summary>
+    public Task<DungeonCommandResult> SpawnMob(SpawnMobRequest request)
+    {
+        if (!environment.IsDevelopment())
+        {
+            return Task.FromResult(
+                DungeonCommandResult.Refuse(
+                    request.CommandId,
+                    DungeonCommandErrorCodes.Refused,
+                    "SpawnMob is only available in Development."
+                )
+            );
+        }
+
+        logger.Information(
+            "Command {CommandId}: spawn a {Kind} at ({X}, {Y}) in dungeon run {DungeonId}.",
+            request.CommandId,
+            request.Kind,
+            request.X,
+            request.Y,
+            request.DungeonId
+        );
+
+        return ExecuteAsync(
+            request.CommandId,
+            request.DungeonId,
+            new SpawnMobCommand(request.DungeonId, request.Kind, request.X, request.Y)
         );
     }
 
