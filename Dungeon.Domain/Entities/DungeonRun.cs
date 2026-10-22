@@ -1,6 +1,7 @@
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Exceptions;
 using Dungeon.Domain.Mobs;
+using Dungeon.Domain.Services.Generation;
 using Dungeon.Domain.ValueObjects;
 
 namespace Dungeon.Domain.Entities;
@@ -140,6 +141,34 @@ public sealed class DungeonRun
         Turn++;
 
         return target;
+    }
+
+    /// <summary>
+    /// Debug only: puts a new mob on a free floor tile of the sandbox (<see cref="SandboxDungeon"/>).
+    /// It counts as an action, but the mobs do not play: they move when the hero does.
+    /// </summary>
+    public void SpawnMob(EnemyKind kind, Position at, GeneratedDungeon dungeon)
+    {
+        DungeonFloor floor = GetCurrentFloor(dungeon);
+
+        if (!dungeon.IsSandbox)
+        {
+            throw new InvalidSpawnException(at, "mobs are only spawned by hand in the sandbox");
+        }
+
+        if (!floor.IsWalkable(at) || floor.GetRoomId(at) is not int roomId)
+        {
+            throw new InvalidSpawnException(at, "the tile is not the floor of a room");
+        }
+
+        if (at == HeroPosition || _mobs.Any(mob => mob.IsActive && mob.Position == at))
+        {
+            throw new InvalidSpawnException(at, "the tile is taken");
+        }
+
+        int id = _mobs.Count == 0 ? 0 : _mobs.Max(mob => mob.ElementId) + 1;
+        _mobs.Add(RunMob.Spawn(new DungeonElement(id, ElementType.Enemy, at, roomId, kind)));
+        Turn++;
     }
 
     private Position GoDown(Position gate, DungeonFloor floor, GeneratedDungeon dungeon)
