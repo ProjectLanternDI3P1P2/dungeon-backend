@@ -53,7 +53,7 @@ d'erreur métier : un refus est une réponse `accepted: false`.
 | --- | --- | --- |
 | `JoinDungeon` | `{ dungeonId }` | Rejoint le groupe `dungeon:{dungeonId}` et renvoie le snapshot courant. Rappeler pour se resynchroniser (après reconnexion, conflit, etc.). |
 | `MoveHero` | `{ commandId, dungeonId, direction }` | Une tuile, un tour, puis le tour des mobs. `direction` : `north`, `east`, `south`, `west`. Entrer dans la grille ouverte de la salle du boss fait descendre à l'étage suivant. |
-| `SpawnMob` | `{ commandId, dungeonId, kind, x, y }` | **Debug.** Pose un mob (`zombie`, `mage`, `goblin`, `bat`) sur une case libre de la salle. Refusé (`refused`) hors du bac à sable : en environnement `Development` seulement, la seed réservée `0000000SANDBX` génère deux salles nues reliées par un couloir, sans élément ; ailleurs, c'est une seed ordinaire. Les mobs ne jouent pas au spawn mais au prochain déplacement du héros. |
+| `SpawnMob` | `{ commandId, dungeonId, kind, x, y }` | **Debug.** Pose un mob (`zombie`, `mage`, `goblin`, `bat`) sur une case libre de la salle. Refusé (`refused`) hors de l'environnement `Development`, puis hors du bac à sable : en `Development` seulement, la seed réservée `0000000SANDBX` génère deux salles nues reliées par un couloir, sans élément ; ailleurs, c'est une seed ordinaire. Les mobs ne jouent pas au spawn mais au prochain déplacement du héros. |
 
 `dungeonId` = `runId` renvoyé par `CreateDungeonRun` (gRPC) ou par
 `POST /api/v1/dungeon-runs`.
