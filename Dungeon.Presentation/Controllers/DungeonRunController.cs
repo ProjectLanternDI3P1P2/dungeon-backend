@@ -94,10 +94,10 @@ public sealed class DungeonRunController(
     /// Opens the chest item on or next to the hero. Rewards generates the contents synchronously;
     /// Dungeon returns that list while retaining ownership of the opened state.
     /// </summary>
-    [HttpPost("{runId:guid}/chests/{elementId:int}/open")]
+    [HttpPost("{runId:guid}/chests/{elementId:guid}/open")]
     public async Task<IActionResult> OpenChest(
         Guid runId,
-        int elementId,
+        Guid elementId,
         CancellationToken cancellationToken
     )
     {

@@ -7,6 +7,6 @@ public sealed class OpenChestCommandValidator : AbstractValidator<OpenChestComma
     public OpenChestCommandValidator()
     {
         RuleFor(command => command.RunId).NotEmpty().WithMessage("RunId is required.");
-        RuleFor(command => command.ElementId).GreaterThanOrEqualTo(0);
+        RuleFor(command => command.ElementId).NotEmpty();
     }
 }

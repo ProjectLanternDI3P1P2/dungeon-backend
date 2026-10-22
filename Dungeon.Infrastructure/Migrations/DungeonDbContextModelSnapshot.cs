@@ -104,8 +104,8 @@ namespace Dungeon.Infrastructure.Migrations
                     b.Property<int>("Floor")
                         .HasColumnType("integer");
 
-                    b.Property<int>("ElementId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("ElementId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("OpenedAt")
                         .HasColumnType("timestamp with time zone");
@@ -152,8 +152,8 @@ namespace Dungeon.Infrastructure.Migrations
                             b1.Property<Guid>("DungeonRunId")
                                 .HasColumnType("uuid");
 
-                            b1.Property<int>("ElementId")
-                                .HasColumnType("integer");
+                            b1.Property<Guid>("ElementId")
+                                .HasColumnType("uuid");
 
                             b1.Property<int?>("DoorX")
                                 .HasColumnType("integer");

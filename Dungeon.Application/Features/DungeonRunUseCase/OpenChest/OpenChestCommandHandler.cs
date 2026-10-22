@@ -32,11 +32,10 @@ public sealed class OpenChestCommandHandler(
 
         bool opened = run.OpenChest(request.ElementId, dungeonProvider.Get(run), openedAt);
         int rewardFloor = run.CurrentFloor + 1;
-        Guid rewardChestId = ChestRewardIdentity.For(run.Id, rewardFloor, request.ElementId);
         ChestLoot loot = await rewardClient.GenerateChestLootAsync(
-            rewardChestId,
+            request.ElementId,
             run.Id,
-            rewardChestId,
+            request.ElementId,
             rewardFloor,
             // Dungeon runs do not expose a difficulty yet; Rewards' local table uses NORMAL.
             DefaultRewardDifficulty,

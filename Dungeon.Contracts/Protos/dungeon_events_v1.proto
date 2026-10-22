@@ -31,6 +31,6 @@ message ChestOpened {
   string game_session_id = 2;
   string seed = 3;
   int32 floor = 4;
-  int32 element_id = 5;
+  string element_id = 5;
   string opened_at_utc = 6;
 }

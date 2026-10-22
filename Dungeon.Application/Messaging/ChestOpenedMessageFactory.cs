@@ -14,7 +14,7 @@ public static class ChestOpenedMessageFactory
         Guid gameSessionId,
         string seed,
         int floor,
-        int elementId,
+        Guid elementId,
         DateTimeOffset openedAt
     )
     {
@@ -24,7 +24,7 @@ public static class ChestOpenedMessageFactory
             GameSessionId = gameSessionId.ToString(),
             Seed = seed,
             Floor = floor,
-            ElementId = elementId,
+            ElementId = elementId.ToString(),
             OpenedAtUtc = openedAt.ToString("O"),
         };
 

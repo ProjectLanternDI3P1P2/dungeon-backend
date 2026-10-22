@@ -202,11 +202,10 @@ public static class DungeonValidator
 
     private static void CheckElements(DungeonFloor floor, List<string> violations)
     {
-        if (
-            floor.Elements.Select((element, index) => element.Id != index).Any(mismatch => mismatch)
-        )
+        if (floor.Elements.Any(element => element.Id == Guid.Empty)
+            || floor.Elements.Select(element => element.Id).Distinct().Count() != floor.Elements.Count)
         {
-            violations.Add("element ids must be 0..n-1 in order");
+            violations.Add("element ids must be non-empty and unique");
         }
 
         if (

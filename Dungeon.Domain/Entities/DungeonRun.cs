@@ -208,7 +208,7 @@ public sealed class DungeonRun
     /// successfully opened chest is harmless:
     /// it returns <see langword="false"/> without consuming another turn.
     /// </summary>
-    public bool OpenChest(int elementId, GeneratedDungeon dungeon, DateTimeOffset openedAt)
+    public bool OpenChest(Guid elementId, GeneratedDungeon dungeon, DateTimeOffset openedAt)
     {
         DungeonFloor floor = GetCurrentFloor(dungeon);
         DungeonElement? chest = floor.Elements.SingleOrDefault(element =>

@@ -31,7 +31,7 @@ public sealed class GetDungeonRunByIdResult
     public IReadOnlyList<MobResult> KilledMobs { get; init; } = [];
 
     /// <summary>Item element IDs already opened on the current floor.</summary>
-    public IReadOnlyList<int> OpenedChestElementIds { get; init; } = [];
+    public IReadOnlyList<Guid> OpenedChestElementIds { get; init; } = [];
 
     /// <summary>The rooms of the current floor the party has discovered: their mobs know it is here.</summary>
     public IReadOnlyList<int> DiscoveredRoomIds { get; init; } = [];

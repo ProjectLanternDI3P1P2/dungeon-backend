@@ -9,7 +9,7 @@ public sealed class OpenedChest
     // Required by EF Core.
     private OpenedChest() { }
 
-    internal OpenedChest(Guid dungeonRunId, int floor, int elementId, DateTimeOffset openedAt)
+    internal OpenedChest(Guid dungeonRunId, int floor, Guid elementId, DateTimeOffset openedAt)
     {
         DungeonRunId = dungeonRunId;
         Floor = floor;
@@ -23,7 +23,7 @@ public sealed class OpenedChest
     public int Floor { get; private set; }
 
     /// <summary>Stable element identifier within the generated floor.</summary>
-    public int ElementId { get; private set; }
+    public Guid ElementId { get; private set; }
 
     public DateTimeOffset OpenedAt { get; private set; }
 }

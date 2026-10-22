@@ -93,9 +93,9 @@ public sealed class OpenChestCommandHandlerTests
         _rewardClientMock.Verify(
             client =>
                 client.GenerateChestLootAsync(
-                    ChestRewardIdentity.For(_run.Id, 1, _chest.Id),
+                    _chest.Id,
                     _run.Id,
-                    ChestRewardIdentity.For(_run.Id, 1, _chest.Id),
+                    _chest.Id,
                     1,
                     "NORMAL",
                     It.IsAny<CancellationToken>()
