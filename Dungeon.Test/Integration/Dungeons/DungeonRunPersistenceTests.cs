@@ -168,7 +168,7 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
     public async Task Load_AfterGoingDown_GivesTheMobsInElementOrder()
     {
         // Arrange: on the way down, the rows of the next floor are partly updated (reused
-        // element ids), partly inserted, and PostgreSQL returns them in its own order.
+        // UUID element ids are sorted explicitly because PostgreSQL returns rows in its own order.
         GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
 
         // Act
@@ -183,6 +183,7 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
                 dungeon
                     .Floors[1]
                     .Elements.Where(element => element.Type == ElementType.Enemy)
+                    .OrderBy(element => element.Id)
                     .Select(element => element.Id)
             );
     }
@@ -190,8 +191,8 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
     [Fact]
     public async Task Load_AfterGoingDown_ReusedElementIdsSpawnAfresh()
     {
-        // Arrange: element ids restart on every floor, so the rows of the floor above are
-        // overwritten under the same key (DungeonRunId, ElementId).
+        // Arrange: each floor has distinct UUID element ids, so rows from the previous floor
+        // cannot be accidentally reused.
         GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
         DungeonElement[] spawns =
         [
@@ -201,10 +202,9 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
         // Act
         (DungeonRun stored, IReadOnlyList<RunMob> above) = await GoDownThenLoad(dungeon);
 
-        // Assert: the reused rows carried state from the floor above, and none of it is left.
-        above
-            .Should()
-            .Contain(mob => spawns.Any(spawn => spawn.Id == mob.ElementId) && mob.Tick > 0);
+        // Assert: UUIDs are unique per generated element, so floor changes never reuse rows;
+        // every mob on the new floor starts with fresh state.
+        stored.Mobs.Should().OnlyContain(mob => spawns.Any(spawn => spawn.Id == mob.ElementId) && mob.Tick == 0);
         stored
             .Mobs.Select(mob =>
                 (
@@ -222,7 +222,7 @@ public sealed class DungeonRunPersistenceTests : IAsyncLifetime
             )
             .Should()
             .Equal(
-                spawns.Select(spawn =>
+                spawns.OrderBy(spawn => spawn.Id).Select(spawn =>
                     (
                         spawn.Id,
                         spawn.Kind!.Value,
