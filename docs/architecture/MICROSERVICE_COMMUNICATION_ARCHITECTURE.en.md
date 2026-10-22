@@ -268,9 +268,10 @@ sequenceDiagram
   D-->>F: 200 { run, loot }
 ```
 
-Dungeon uses the same stable UUIDv8 for `command_id` and `chest_id`, derived
-with SHA-256 from the run, Reward's one-based floor and the map element id.
-This is a deterministic identity for idempotency, not a security hash. Until Reward's
+Dungeon uses the same stable UUIDv5 for `command_id` and `chest_id`, derived
+with SHA-1 from the run, Reward's one-based floor and the map element id.
+This derivation is not a security mechanism and must remain identical to
+Reward's `ChestLootIdentity.Create`. Until Reward's
 reviewed contract package is published, its proto is copied locally under
 `Dungeon.Infrastructure` and must remain strictly synchronized with its source.
 

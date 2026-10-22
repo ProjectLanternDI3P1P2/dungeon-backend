@@ -238,10 +238,10 @@ sequenceDiagram
   D-->>F: 200 { run, loot }
 ```
 
-Dungeon utilise le même UUID v8 stable pour `command_id` et `chest_id`, dérivé
-par SHA-256 de la run, de l'étage Reward (1 à 4) et de l'identifiant d'élément.
-Il s'agit d'une identité déterministe pour l'idempotence, pas d'un hash de sécurité.
-Tant que le package
+Dungeon utilise le même UUID v5 stable pour `command_id` et `chest_id`, dérivé
+par SHA-1 de la run, de l'étage Reward (1 à 4) et de l'identifiant d'élément.
+Cette dérivation n'est pas un mécanisme de sécurité et doit rester identique à
+`ChestLootIdentity.Create` côté Rewards. Tant que le package
 NuGet du contrat revu n'est pas publié, le proto Reward est copié localement dans
 `Dungeon.Infrastructure` et doit rester strictement synchronisé avec sa source.
 
