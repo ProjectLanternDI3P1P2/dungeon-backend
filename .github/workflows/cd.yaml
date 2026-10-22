@@ -16,10 +16,10 @@ jobs:
     permissions:
       contents: read
       packages: read
-    uses: ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml@06761f0b31acaa488e39c909bcb422a1649924d7 # main
+    uses: ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml@9d823620501406e8b7ffccba742e73ab4d04879e # Harbor 10.4.111.200:18443
     with:
       application: dungeon
-      image: registry.lantern.diiage/lantern/dungeon-backend
+      image: 10.4.111.200:18443/lantern/dungeon-backend
     secrets:
       HARBOR_USERNAME: ${{ secrets.HARBOR_USERNAME }}
       HARBOR_TOKEN: ${{ secrets.HARBOR_TOKEN }}
