@@ -1,6 +1,7 @@
 using Dungeon.Application.Abstractions;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
+using Dungeon.Application.Features.DungeonRunUseCase.SpawnMob;
 using Dungeon.Domain.Exceptions;
 using FluentValidation;
 using MediatR;
@@ -79,6 +80,25 @@ public sealed class DungeonHub(IMediator mediator, HubCommandCache commandCache,
             request.CommandId,
             request.DungeonId,
             new MoveHeroCommand(request.DungeonId, request.Direction)
+        );
+    }
+
+    /// <summary>Debug only: refused on any run but one of the sandbox dungeon.</summary>
+    public Task<DungeonCommandResult> SpawnMob(SpawnMobRequest request)
+    {
+        logger.Information(
+            "Command {CommandId}: spawn a {Kind} at ({X}, {Y}) in dungeon run {DungeonId}.",
+            request.CommandId,
+            request.Kind,
+            request.X,
+            request.Y,
+            request.DungeonId
+        );
+
+        return ExecuteAsync(
+            request.CommandId,
+            request.DungeonId,
+            new SpawnMobCommand(request.DungeonId, request.Kind, request.X, request.Y)
         );
     }
 
