@@ -16,6 +16,7 @@ public sealed class OpenChestCommandHandler(
     IRewardClient rewardClient
 ) : IRequestHandler<OpenChestCommand, ChestLoot>
 {
+    // TODO: derive this from the dungeon run once its difficulty is modelled.
     private const string DefaultRewardDifficulty = "NORMAL";
 
     public async Task<ChestLoot> Handle(

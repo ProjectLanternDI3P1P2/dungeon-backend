@@ -179,9 +179,10 @@ développement de Rewards couvrent les étages 1 à 4 en `NORMAL` et `HARD` ;
 les tables manquantes sont ajoutées au redémarrage de Rewards sans réinitialiser
 les données existantes.
 
-Le `command_id` et le `chest_id` envoyés à Rewards sont le même UUID v5 stable,
-dérivé de l'identifiant de run et du nom `{floor}:{elementId}` avec l'étage
-Rewards (indexé à partir de 1). Un retry rejoue donc le même loot. En attendant
+Le `command_id` et le `chest_id` envoyés à Rewards sont le même UUID v8 stable,
+dérivé par SHA-256 de l'identifiant de run et du nom `{floor}:{elementId}` avec
+l'étage Rewards (indexé à partir de 1). Il s'agit d'une identité déterministe,
+pas d'un hash de sécurité. Un retry rejoue donc le même loot. En attendant
 la publication du package NuGet revu par Rewards, son fichier
 `reward_chest_loot_v1.proto` est copié localement dans `Dungeon.Infrastructure` ;
 ce doublon temporaire doit être remplacé par le package dès sa publication.

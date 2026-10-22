@@ -6,14 +6,14 @@ namespace Dungeon.Test.Features.DungeonRunUseCase.OpenChest;
 public sealed class ChestRewardIdentityTests
 {
     [Fact]
-    public void For_SameContextAsReward_ReturnsTheSameVersion5Uuid()
+    public void For_SameContextAsReward_ReturnsTheSameStableVersion8Uuid()
     {
         var runId = Guid.Parse("11111111-2222-3333-4444-555555555555");
 
         Guid result = ChestRewardIdentity.For(runId, floor: 1, elementId: 0);
 
-        result.Should().Be(Guid.Parse("c24d1caf-1a51-59b6-9f4d-d51bfafaa1e9"));
-        result.Version.Should().Be(5);
+        result.Should().Be(Guid.Parse("4f2b4db8-036f-83d5-b268-24e9905597a6"));
+        result.Version.Should().Be(8);
     }
 
     [Fact]
