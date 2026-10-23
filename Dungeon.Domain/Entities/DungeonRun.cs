@@ -172,7 +172,7 @@ public sealed class DungeonRun
             throw new InvalidSpawnException(at, "the tile is taken");
         }
 
-        int id = _mobs.Count == 0 ? 0 : _mobs.Max(mob => mob.ElementId) + 1;
+        Guid id = Guid.NewGuid();
         _mobs.Add(RunMob.Spawn(new DungeonElement(id, ElementType.Enemy, at, roomId, kind)));
         Turn++;
     }
