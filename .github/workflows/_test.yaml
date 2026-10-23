@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 jobs:
   test:
@@ -38,4 +39,5 @@ jobs:
       - name: Run tests
         env:
           DUNGEON_TEST_DATABASE_CONNECTION: Host=localhost;Port=5432;Database=dungeon_test;Username=dungeon
+          NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }};ValidAuthenticationTypes=Basic
         run: dotnet test --solution Dungeon.Presentation.slnx

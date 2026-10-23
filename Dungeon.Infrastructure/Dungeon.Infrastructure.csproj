@@ -30,11 +30,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Scrutor" Version="7.0.0" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- Temporary local copy until Reward publishes the reviewed contract package. -->
-    <Protobuf Include="Grpc/Protos/reward_chest_loot_v1.proto" GrpcServices="Client" />
+    <PackageReference Include="Reward.Contracts" Version="2.0.0" />
   </ItemGroup>
 
   <ItemGroup>

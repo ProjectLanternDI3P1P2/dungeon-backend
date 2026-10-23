@@ -61,7 +61,9 @@ public class DungeonRunSandboxTests
         run.MoveHero(Direction.South, dungeon, MobRules.Default);
 
         // Assert
-        run.Mobs.Select(mob => mob.Kind).Should().Equal(EnemyKind.Zombie, EnemyKind.Bat);
+        run.Mobs.Select(mob => mob.Kind)
+            .Should()
+            .BeEquivalentTo(new[] { EnemyKind.Zombie, EnemyKind.Bat });
         run.Mobs.Select(mob => mob.ElementId)
             .Should()
             .OnlyContain(id => id != Guid.Empty)
