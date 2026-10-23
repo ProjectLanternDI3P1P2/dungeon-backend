@@ -260,7 +260,7 @@ sequenceDiagram
   participant R as Rewards
   F->>D: POST /dungeon-runs/{runId}/chests/{elementId}/open
   D->>D: Authorize and verify the chest in the 3x3 area
-  D->>D: Derive a deterministic command/chest identity
+  D->>D: Reuse the stable element GUID as command/chest identity
   D->>R: gRPC GenerateChestLoot(command_id, run, chest, floor, difficulty)
   R->>R: Create or replay idempotent loot
   R-->>D: Confirmed loot + items
@@ -268,10 +268,11 @@ sequenceDiagram
   D-->>F: 200 { run, loot }
 ```
 
-Dungeon uses the same stable UUIDv5 for `command_id` and `chest_id`, derived
-with SHA-1 from the run, Reward's one-based floor and the map element id.
-This derivation is not a security mechanism and must remain identical to
-Reward's `ChestLootIdentity.Create`. Until Reward's
+Dungeon sends the stable chest element GUID directly as both `command_id` and
+`chest_id`. Element IDs are assigned deterministically when the dungeon is
+generated, so Dungeon does not apply an additional hash. Rewards uses the
+`(dungeonRunId, chestId)` pair as its idempotency key to replay existing loot.
+Until Reward's
 reviewed contract package is published, its proto is copied locally under
 `Dungeon.Infrastructure` and must remain strictly synchronized with its source.
 

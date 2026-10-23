@@ -230,7 +230,7 @@ sequenceDiagram
   participant R as Rewards
   F->>D: POST /dungeon-runs/{runId}/chests/{elementId}/open
   D->>D: Autorise et vérifie le coffre dans la zone 3x3
-  D->>D: Dérive une identité déterministe de commande/coffre
+  D->>D: Réutilise le GUID stable de l'élément comme identité de commande/coffre
   D->>R: gRPC GenerateChestLoot(command_id, run, coffre, étage, difficulté)
   R->>R: Crée ou retrouve le loot idempotent
   R-->>D: Loot confirmé + items
@@ -238,10 +238,11 @@ sequenceDiagram
   D-->>F: 200 { run, loot }
 ```
 
-Dungeon utilise le même UUID v5 stable pour `command_id` et `chest_id`, dérivé
-par SHA-1 de la run, de l'étage Reward (1 à 4) et de l'identifiant d'élément.
-Cette dérivation n'est pas un mécanisme de sécurité et doit rester identique à
-`ChestLootIdentity.Create` côté Rewards. Tant que le package
+Dungeon transmet directement le GUID stable de l'élément de coffre pour
+`command_id` et `chest_id`. Les identifiants d'éléments sont attribués de façon
+déterministe lors de la génération du donjon ; Dungeon n'applique donc aucun
+hash. Rewards utilise le couple `(dungeonRunId, chestId)` comme clé idempotente
+pour retrouver le loot existant. Tant que le package
 NuGet du contrat revu n'est pas publié, le proto Reward est copié localement dans
 `Dungeon.Infrastructure` et doit rester strictement synchronisé avec sa source.
 
