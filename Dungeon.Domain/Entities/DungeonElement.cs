@@ -9,7 +9,7 @@ namespace Dungeon.Domain.Entities;
 /// enemies only.
 /// </summary>
 public sealed record DungeonElement(
-    int Id,
+    Guid Id,
     ElementType Type,
     Position Position,
     int RoomId,

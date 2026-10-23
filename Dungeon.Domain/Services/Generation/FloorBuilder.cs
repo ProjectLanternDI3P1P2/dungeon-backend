@@ -61,6 +61,7 @@ internal static class FloorBuilder
         List<DungeonElement> elements = PlaceElements(
             grid,
             DeterministicRandom.ForStream(seed, RandomStream.Mobs, floorIndex),
+            DeterministicRandom.ForStream(seed, RandomStream.ElementIds, floorIndex),
             rooms
         );
 
@@ -290,6 +291,7 @@ internal static class FloorBuilder
     private static List<DungeonElement> PlaceElements(
         TileGrid grid,
         DeterministicRandom mobs,
+        DeterministicRandom elementIds,
         List<RoomDraft> rooms
     )
     {
@@ -299,7 +301,7 @@ internal static class FloorBuilder
         void Add(ElementType type, Position position, RoomDraft room) =>
             elements.Add(
                 new DungeonElement(
-                    elements.Count,
+                    elementIds.NextGuid(),
                     type,
                     position,
                     room.Id,

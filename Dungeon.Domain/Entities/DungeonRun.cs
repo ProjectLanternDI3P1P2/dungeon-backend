@@ -49,6 +49,12 @@ public sealed class DungeonRun
     /// </summary>
     public bool IsFloorBossDefeated { get; private set; }
 
+    /// <summary>
+    /// Chests that this run has already opened. Their position and content remain deterministic
+    /// in the generated map; this collection is the mutable per-run overlay.
+    /// </summary>
+    public List<OpenedChest> OpenedChests { get; private set; } = [];
+
     public DateTimeOffset StartedAt { get; private set; }
 
     /// <summary>
@@ -166,7 +172,7 @@ public sealed class DungeonRun
             throw new InvalidSpawnException(at, "the tile is taken");
         }
 
-        int id = _mobs.Count == 0 ? 0 : _mobs.Max(mob => mob.ElementId) + 1;
+        Guid id = Guid.NewGuid();
         _mobs.Add(RunMob.Spawn(new DungeonElement(id, ElementType.Enemy, at, roomId, kind)));
         Turn++;
     }
@@ -223,6 +229,43 @@ public sealed class DungeonRun
         {
             Status = DungeonRunStatus.Won;
         }
+    }
+
+    /// <summary>
+    /// Opens the chest represented by an <see cref="ElementType.Item"/> on the current floor.
+    /// The party must stand on the chest tile or one of its eight neighbouring tiles. Retrying a
+    /// successfully opened chest is harmless:
+    /// it returns <see langword="false"/> without consuming another turn.
+    /// </summary>
+    public bool OpenChest(Guid elementId, GeneratedDungeon dungeon, DateTimeOffset openedAt)
+    {
+        DungeonFloor floor = GetCurrentFloor(dungeon);
+        DungeonElement? chest = floor.Elements.SingleOrDefault(element =>
+            element.Id == elementId && element.Type == ElementType.Item
+        );
+
+        if (chest is null)
+        {
+            throw new ChestNotFoundException(Id, CurrentFloor, elementId);
+        }
+
+        if (HeroPosition.DistanceTo(chest.Position) > 1)
+        {
+            throw new ChestNotInReachException(Id, CurrentFloor, elementId);
+        }
+
+        if (
+            OpenedChests.Any(opened =>
+                opened.Floor == CurrentFloor && opened.ElementId == elementId
+            )
+        )
+        {
+            return false;
+        }
+
+        OpenedChests.Add(new OpenedChest(Id, CurrentFloor, elementId, openedAt));
+        Turn++;
+        return true;
     }
 
     private DungeonFloor GetCurrentFloor(GeneratedDungeon dungeon)

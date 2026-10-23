@@ -29,8 +29,9 @@ public sealed class DungeonGenerator(bool sandboxEnabled = false)
     /// its own stream.
     /// Version 6: no loot in combat rooms, Reward decides what a fight drops; the boss stands
     /// alone in its room; the generator places the mobs itself, away from doors and walls.
+    /// Version 7: generated element identifiers are deterministic GUIDs instead of indexes.
     /// </remarks>
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public GeneratedDungeon Generate(Seed seed, DungeonSettings settings)
     {
