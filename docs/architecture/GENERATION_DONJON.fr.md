@@ -165,11 +165,26 @@ termine par un boss ; celui du dernier étage est le boss final.
 | `POST /api/v1/dungeon-runs` `{ gameSessionId, runId?, seed? }` | Crée une run et génère son donjon. Idempotent par `runId`. | 201, 409, 422 |
 | `GET /api/v1/dungeon-runs/{runId}` | État de la run : héros, tour, salle courante, éléments sous le héros, mobs vivants de l'étage (`mobs`, voir `DEPLACEMENT_MOBS.fr.md` §7). 409 si la run date d'une version antérieure du générateur. | 200, 404, 409 |
 | `POST /api/v1/dungeon-runs/{runId}/boss-defeats` | Enregistre la victoire sur le boss de l'étage : la grille s'ouvre ; sur le dernier étage, la run est gagnée (`won`). À appeler par Combat ; le héros doit être dans la salle du boss. | 200, 404, 409 |
+| `POST /api/v1/dungeon-runs/{runId}/chests/{elementId}/open` | Ouvre un élément `item` dans la zone de 3×3 cases autour du héros. Dungeon vérifie la proximité, demande à Rewards de générer/rejouer le loot, puis persiste l'ouverture uniquement après confirmation. La réponse vaut `{ run, loot }` : `run` est le snapshot autoritaire et `loot` reprend le résultat Reward (`rewardId`, contexte, `alreadyGenerated`, `items`). | 200, 404, 409, 422, 500 |
 | `GET /api/v1/dungeons/{seed}/map?floor=0` | Étage complet : `rows` (1 caractère par tuile, décodé par `legend`), salles, éléments. | 200, 404, 422 |
 | `GET /api/v1/dungeons/{seed}/cell?x=&y=&floor=0` | Type d'une tuile, sa salle et ses éléments (Combat, Inventory). | 200, 404, 422 |
 
 Le déplacement, descente par la grille ouverte comprise, passe par le Hub
 SignalR `/hubs/dungeons` (`MoveHero`) : voir [DUNGEON_HUB.fr.md](DUNGEON_HUB.fr.md).
+
+Pour l'ouverture d'un coffre, l'index d'étage Dungeon (0 à 3) est transmis à
+Rewards sous forme `floor + 1`. L'intégration actuelle utilise la difficulté
+`NORMAL` tant que Dungeon n'expose pas de difficulté de run. Les seeds de
+développement de Rewards couvrent les étages 1 à 4 en `NORMAL` et `HARD` ;
+les tables manquantes sont ajoutées au redémarrage de Rewards sans réinitialiser
+les données existantes.
+
+Le `command_id` et le `chest_id` envoyés à Rewards sont directement l'UUID stable
+de l'élément de coffre généré par Dungeon. Dungeon n'applique aucun hash : un retry
+réutilise donc le même identifiant idempotent et rejoue le même loot. En attendant
+la publication du package NuGet revu par Rewards, son fichier
+`reward_chest_loot_v1.proto` est copié localement dans `Dungeon.Infrastructure` ;
+ce doublon temporaire doit être remplacé par le package dès sa publication.
 
 Types de tuiles (`legend`) : `void`, `floor`, `wall`, `door`, `obstacle`,
 `pillar`, `fence`, `gate`, `grate`, `water`, `lava`, `tomb`. Sont praticables

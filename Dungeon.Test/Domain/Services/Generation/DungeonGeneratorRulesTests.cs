@@ -387,7 +387,9 @@ public class DungeonGeneratorRulesTests
         IReadOnlyList<string> violations = DungeonValidator.ValidateFloor(floor, valid.Rooms.Count);
 
         // Assert
-        violations.Should().Contain("element 0: an enemy needs a kind, other elements have none");
+        violations
+            .Should()
+            .Contain($"element {elements[0].Id}: an enemy needs a kind, other elements have none");
     }
 
     [Fact]

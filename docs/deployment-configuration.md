@@ -57,6 +57,10 @@ injecté dans `NuGetPackageSourceCredentials_github`, au format
 `Username=<login>;Password=<token>;ValidAuthenticationTypes=Basic`.
 Ne pas mettre de jeton dans un ARG, une image ou un fichier versionné.
 
+Le contrat gRPC Reward est consommé depuis le package NuGet versionné
+`Reward.Contracts`. Le package est restauré depuis GitHub Packages ; les
+identifiants sont requis en CI et lors du build Docker comme décrit ci-dessus.
+
 ```sh
 docker build --secret id=github_packages_credentials,env=GITHUB_PACKAGES_CREDENTIALS .
 ```

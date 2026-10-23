@@ -11,7 +11,7 @@ public sealed record PositionResult(int X, int Y)
 
 /// <param name="Kind">How an enemy silhouette moves; null for any other element.</param>
 public sealed record DungeonElementResult(
-    int Id,
+    Guid Id,
     string Type,
     int X,
     int Y,
@@ -33,7 +33,7 @@ public sealed record DungeonElementResult(
 /// <summary>A living mob of the current floor, where it stands this turn.</summary>
 /// <param name="NextTeleport">Where a mage will land on its next action; null otherwise.</param>
 public sealed record MobResult(
-    int Id,
+    Guid Id,
     string Kind,
     int X,
     int Y,
@@ -149,6 +149,21 @@ public static class DungeonContract
             "east" => (true, Direction.East),
             "south" => (true, Direction.South),
             "west" => (true, Direction.West),
+            _ => (false, default),
+        };
+
+        return parsed;
+    }
+
+    /// <summary>Parses a mob kind sent by a client: zombie, mage, goblin or bat, any case.</summary>
+    public static bool TryParseEnemyKind(string? value, out EnemyKind kind)
+    {
+        (bool parsed, kind) = value?.ToLowerInvariant() switch
+        {
+            "zombie" => (true, EnemyKind.Zombie),
+            "mage" => (true, EnemyKind.Mage),
+            "goblin" => (true, EnemyKind.Goblin),
+            "bat" => (true, EnemyKind.Bat),
             _ => (false, default),
         };
 
