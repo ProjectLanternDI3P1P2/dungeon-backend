@@ -9,7 +9,11 @@ namespace Dungeon.Domain.Services.Generation;
 /// Builds a dungeon from a seed. The output depends only on (seed, settings, version):
 /// no clock, no <see cref="System.Random"/>, no hash-ordered collection, no floating point.
 /// </summary>
-public sealed class DungeonGenerator
+/// <param name="sandboxEnabled">
+/// In development only: the seed of <see cref="SandboxDungeon"/> gives the debug sandbox.
+/// Otherwise it is a seed like any other.
+/// </param>
+public sealed class DungeonGenerator(bool sandboxEnabled = false)
 {
     /// <summary>
     /// Bump this whenever a change alters the output for an existing seed, and keep the old
@@ -43,6 +47,11 @@ public sealed class DungeonGenerator
         if (generatorVersion != CurrentVersion)
         {
             throw new UnsupportedGeneratorVersionException(generatorVersion, CurrentVersion);
+        }
+
+        if (sandboxEnabled && seed == SandboxDungeon.Seed)
+        {
+            return SandboxDungeon.Build(settings, CurrentVersion);
         }
 
         List<DungeonFloor> floors = new(settings.FloorCount);
