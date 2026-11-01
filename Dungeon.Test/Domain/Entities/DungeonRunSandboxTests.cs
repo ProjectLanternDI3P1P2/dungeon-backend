@@ -9,7 +9,10 @@ using FluentAssertions;
 
 namespace Dungeon.Test.Domain.Entities;
 
-/// <summary>The debug sandbox: two bare rooms where mobs are spawned by hand, in development only.</summary>
+/// <summary>
+/// The debug sandbox: two bare rooms where mobs are spawned by hand, then the easter-egg
+/// rooms, in development only.
+/// </summary>
 public class DungeonRunSandboxTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 21, 12, 0, 0, TimeSpan.Zero);
@@ -27,7 +30,7 @@ public class DungeonRunSandboxTests
     }
 
     [Fact]
-    public void Generate_SandboxSeed_GivesTwoBareRoomsJoinedByACorridorOnEveryFloor()
+    public void Generate_SandboxSeed_GivesTwoBareRoomsThenTheEasterEggRoomsInAColumn()
     {
         // Act
         GeneratedDungeon dungeon = GenerateSandbox();
@@ -36,15 +39,55 @@ public class DungeonRunSandboxTests
         dungeon.Floors.Should().HaveCount(DungeonSettings.Default.FloorCount);
         foreach (DungeonFloor floor in dungeon.Floors)
         {
-            floor.Rooms.Select(room => room.Id).Should().Equal(0, 1);
-            floor.Rooms[1].Interior.Bottom.Should().BeLessThan(floor.Rooms[0].Interior.Y);
-            floor.Elements.Should().BeEmpty();
-            DungeonTestData.PositionsOf(floor, CellType.Door).Should().HaveCount(2);
-            floor.GetRoomId(floor.Entrance).Should().Be(0);
-            DungeonTestData
-                .FindPath(floor, floor.Entrance, floor.Rooms[1].Center)
+            floor.Rooms.Select(room => room.Id).Should().Equal(0, 1, 2, 3, 4, 5, 6);
+            floor
+                .Rooms.Select(room => room.Type)
                 .Should()
-                .NotBeNull();
+                .Equal(
+                    RoomType.Start,
+                    RoomType.Empty,
+                    RoomType.Secret,
+                    RoomType.Secret,
+                    RoomType.Secret,
+                    RoomType.Secret,
+                    RoomType.Secret
+                );
+            floor
+                .Rooms.Select(room => room.EasterEgg)
+                .Should()
+                .Equal(
+                    null,
+                    null,
+                    "outerWildsShip",
+                    "outerWildsCampfire",
+                    "celeste",
+                    "minecraft",
+                    "portal"
+                );
+            // Each room stands north of the one before it.
+            floor
+                .Rooms.Zip(floor.Rooms.Skip(1))
+                .Should()
+                .OnlyContain(pair => pair.Second.Interior.Bottom < pair.First.Interior.Y);
+            DungeonTestData.PositionsOf(floor, CellType.Door).Should().HaveCount(12);
+            floor.GetRoomId(floor.Entrance).Should().Be(0);
+            floor
+                .Rooms.Should()
+                .OnlyContain(room =>
+                    DungeonTestData.FindPath(floor, floor.Entrance, room.Center) != null
+                );
+            floor
+                .Elements.Select(element => element.Decoration)
+                .Should()
+                .BeEquivalentTo([
+                    DecorationKind.Ship,
+                    DecorationKind.Campfire,
+                    DecorationKind.Strawberry,
+                    DecorationKind.GrassBlock,
+                    DecorationKind.BluePortal,
+                    DecorationKind.OrangePortal,
+                ]);
+            floor.Elements.Should().OnlyContain(element => element.Type == ElementType.Decoration);
         }
     }
 

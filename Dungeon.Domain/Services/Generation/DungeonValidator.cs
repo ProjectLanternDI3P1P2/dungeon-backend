@@ -221,9 +221,16 @@ public static class DungeonValidator
 
         foreach (DungeonElement element in floor.Elements)
         {
+            // A decoration stands on its own ground, or on the floor below a wall it hangs on.
             bool onFloor =
                 floor.Contains(element.Position)
-                && floor.GetCell(element.Position) == CellType.Floor;
+                && (
+                    floor.GetCell(element.Position) == CellType.Floor
+                    || (
+                        element.Type == ElementType.Decoration
+                        && floor.GetCell(element.Position) == CellType.Decoration
+                    )
+                );
             if (!onFloor || floor.GetRoomId(element.Position) != element.RoomId)
             {
                 violations.Add(
@@ -235,6 +242,13 @@ public static class DungeonValidator
             {
                 violations.Add(
                     $"element {element.Id}: an enemy needs a kind, other elements have none"
+                );
+            }
+
+            if ((element.Type == ElementType.Decoration) != (element.Decoration != null))
+            {
+                violations.Add(
+                    $"element {element.Id}: a decoration says what it shows, other elements do not"
                 );
             }
         }

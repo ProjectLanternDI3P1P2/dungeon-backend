@@ -15,4 +15,11 @@ public enum RoomType
     /// to the next floor; on the last floor, it is the final boss.
     /// </summary>
     Boss,
+
+    /// <summary>
+    /// An easter-egg room, a tribute to a game the class loves: decorations only, no enemy,
+    /// no loot. Legendary: a floor hides one only once in a long while (see
+    /// <see cref="Services.Generation.EasterEggs"/>).
+    /// </summary>
+    Secret,
 }
