@@ -9,7 +9,9 @@ public sealed record PositionResult(int X, int Y)
     public static PositionResult From(Position position) => new(position.X, position.Y);
 }
 
-/// <param name="Kind">How an enemy silhouette moves; null for any other element.</param>
+/// <param name="Kind">
+/// How an enemy silhouette moves, or what a decoration shows; null for any other element.
+/// </param>
 public sealed record DungeonElementResult(
     Guid Id,
     string Type,
@@ -26,7 +28,9 @@ public sealed record DungeonElementResult(
             element.Position.X,
             element.Position.Y,
             element.RoomId,
-            element.Kind is { } kind ? DungeonContract.Name(kind) : null
+            element.Kind is { } kind ? DungeonContract.Name(kind)
+                : element.Decoration is { } decoration ? DungeonContract.Name(decoration)
+                : null
         );
 }
 
@@ -74,6 +78,7 @@ public static class DungeonContract
             CellType.Water => '~',
             CellType.Lava => '^',
             CellType.Tomb => 'T',
+            CellType.Decoration => '*',
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 
@@ -92,6 +97,7 @@ public static class DungeonContract
             CellType.Water => "water",
             CellType.Lava => "lava",
             CellType.Tomb => "tomb",
+            CellType.Decoration => "decoration",
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 
@@ -102,6 +108,7 @@ public static class DungeonContract
             ElementType.Boss => "boss",
             ElementType.Item => "item",
             ElementType.Trap => "trap",
+            ElementType.Decoration => "decoration",
             _ => throw new ArgumentOutOfRangeException(nameof(elementType), elementType, null),
         };
 
@@ -123,7 +130,20 @@ public static class DungeonContract
             RoomType.Treasure => "treasure",
             RoomType.Empty => "empty",
             RoomType.Boss => "boss",
+            RoomType.Secret => "secret",
             _ => throw new ArgumentOutOfRangeException(nameof(roomType), roomType, null),
+        };
+
+    public static string Name(DecorationKind decoration) =>
+        decoration switch
+        {
+            DecorationKind.Ship => "ship",
+            DecorationKind.Campfire => "campfire",
+            DecorationKind.Strawberry => "strawberry",
+            DecorationKind.GrassBlock => "grassBlock",
+            DecorationKind.BluePortal => "bluePortal",
+            DecorationKind.OrangePortal => "orangePortal",
+            _ => throw new ArgumentOutOfRangeException(nameof(decoration), decoration, null),
         };
 
     public static string Name(DungeonRunStatus status) =>

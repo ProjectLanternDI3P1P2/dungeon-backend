@@ -37,9 +37,15 @@ internal static class FloorBuilder
         Seed seed,
         int floorIndex,
         bool isFinalFloor,
-        List<RoomDraft> rooms
+        List<RoomDraft> rooms,
+        int easterEggOneIn = EasterEggs.DefaultOneIn
     )
     {
+        EasterEggs.Roll(
+            DeterministicRandom.ForStream(seed, RandomStream.EasterEggs, floorIndex),
+            rooms,
+            easterEggOneIn
+        );
         ChooseTemplates(
             DeterministicRandom.ForStream(seed, RandomStream.RoomTemplates, floorIndex),
             rooms
@@ -73,7 +79,8 @@ internal static class FloorBuilder
                 room.Interior,
                 room.Center,
                 room.Depth,
-                room.Connections.Order().ToArray()
+                room.Connections.Order().ToArray(),
+                room.Template.EasterEgg
             ))
             .ToList();
 
@@ -120,10 +127,13 @@ internal static class FloorBuilder
         List<RoomTemplate> templates
     )
     {
-        int roll = random.NextInt(templates.Sum(template => (int)template.Rarity));
+        // Legendary templates weigh 0 among the others; among themselves, they weigh the same.
+        static int Weight(RoomTemplate template) => Math.Max(1, (int)template.Rarity);
+
+        int roll = random.NextInt(templates.Sum(Weight));
         foreach (RoomTemplate template in templates)
         {
-            roll -= (int)template.Rarity;
+            roll -= Weight(template);
             if (roll < 0)
             {
                 return template;
@@ -298,14 +308,20 @@ internal static class FloorBuilder
         List<DungeonElement> elements = [];
         int maxDepth = Math.Max(1, rooms.Max(room => room.Depth));
 
-        void Add(ElementType type, Position position, RoomDraft room) =>
+        void Add(
+            ElementType type,
+            Position position,
+            RoomDraft room,
+            DecorationKind? decoration = null
+        ) =>
             elements.Add(
                 new DungeonElement(
                     elementIds.NextGuid(),
                     type,
                     position,
                     room.Id,
-                    type == ElementType.Enemy ? mobs.Pick(EnemyKinds) : null
+                    type == ElementType.Enemy ? mobs.Pick(EnemyKinds) : null,
+                    decoration
                 )
             );
 
@@ -371,6 +387,24 @@ internal static class FloorBuilder
                         {
                             placed.Add(spot);
                             Add(ElementType.Enemy, spot, room);
+                        }
+                    }
+
+                    break;
+
+                case RoomType.Secret:
+                    // One element per decoration, on the first tile of its footprint.
+                    foreach (char spot in RoomTemplate.DecorationSpots)
+                    {
+                        List<Position> footprint = room.SpotsOf(spot);
+                        if (footprint.Count > 0)
+                        {
+                            Add(
+                                ElementType.Decoration,
+                                footprint[0],
+                                room,
+                                RoomTemplate.DecorationOf(spot)
+                            );
                         }
                     }
 

@@ -196,9 +196,13 @@ Un élément vaut `{ id, type, x, y, roomId, kind }`. Types d'éléments : `enem
 ou `bat` sur un `enemy`, et `null` sur les autres.
 
 Un étage de 40 salles pèse environ 40 Ko en JSON (3 Ko compressé), contre
-environ 1 Mo avec un objet JSON par tuile. Les réponses `map` et `cell` sont
-immuables pour une seed donnée : elles portent
-`Cache-Control: public, max-age=31536000, immutable`.
+environ 1 Mo avec un objet JSON par tuile. Les réponses `map` et `cell` portent
+`Cache-Control: public, no-cache` et un `ETag` (empreinte du contenu) : le
+navigateur garde l'étage mais le redemande avant chaque usage, et reçoit un 304
+sans corps s'il n'a pas changé. Une seed ne donne le même étage que tant que le
+générateur, ses gabarits et ses réglages (`EasterEggOneIn`) ne changent pas :
+un cache « immuable » garderait sinon un ancien étage, et le front prédirait des
+pas que le serveur refuse.
 
 Deux déplacements simultanés sur la même run : `Turn` sert de jeton de
 concurrence, le second est refusé (`conflict`) au lieu d'écraser le premier.
@@ -223,6 +227,43 @@ leurs réglages) :
   l'arrivée, la descente est instantanée.
 - Le combat n'existe pas encore : en attendant le service Combat, le front
   appelle cet endpoint quand le héros marche sur le boss.
+
+## 5 bis. Salles easter egg (légendaires)
+
+Cinq salles hommage, purement décoratives (aucun ennemi, aucun loot) : deux pour
+Outer Wilds (le vaisseau ; le feu de camp et sa guimauve), Celeste (une fraise
+ailée), Minecraft (un bloc d'herbe) et Portal (les portails bleu et orange au
+mur du fond).
+
+- **Rareté `Legendary`** : leurs gabarits (`Templates/EasterEggRoomTemplates.cs`)
+  ne sont jamais tirés au poids. Un tirage à part (`EasterEggs`, flux aléatoire
+  `EasterEggs`) transforme, une fois de temps en temps, la salle vide d'un étage
+  en salle `secret`, puis tire laquelle des cinq : chacune est donc encore plus
+  rare.
+- **Taux réglable** : un étage sur `EasterEggOneIn` (100 par défaut, soit environ
+  une partie sur trente), `0` les désactive :
+
+  ```json
+  "Dungeon": { "Generation": { "EasterEggOneIn": 100 } }
+  ```
+
+  Le tirage a son propre flux : un étage sans easter egg est construit
+  exactement comme avant. Changer le taux change en revanche quelles graines en
+  cachent un, parties en cours comprises.
+- **Contrat** : salle `type: "secret"` avec `easterEgg` (`outerWildsShip`,
+  `outerWildsCampfire`, `celeste`, `minecraft`, `portal`) ; éléments `type: "decoration"` dont `kind` dit ce
+  qu'ils montrent (`ship`, `campfire`, `strawberry`, `grassBlock`, `bluePortal`,
+  `orangePortal`) ; case `*` (`decoration`) sous un décor, non franchissable. Les
+  portails sont posés sur la rangée du haut, franchissable : le front les dessine
+  sur le mur au-dessus.
+- **Pour tester** : le donjon sandbox de dev (`0000000SANDBX`) empile les cinq
+  salles au nord des deux salles nues. Graines où l'easter egg est au premier
+  étage, avec le taux par défaut : `0S8QMP5GDPJ11` (vaisseau), `0EANG6PJ9ZAV7`
+  (feu de camp), `0XBWXVS90496E` (Celeste), `01GWTHZB70BF7` (Minecraft),
+  `0CR57NSZKFK60` (Portal). `EasterEggsTests` les vérifie.
+- **En ajouter un** : dessiner ses sprites dans la planche du front, ajouter un
+  `DecorationKind` et sa lettre dans `RoomTemplate`, puis un gabarit dans
+  `EasterEggRoomTemplates`.
 
 ## 6. Vérifications effectuées
 

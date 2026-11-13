@@ -35,5 +35,8 @@ public sealed record DungeonRoomResult(
     int Height,
     PositionResult Center,
     int Depth,
-    IReadOnlyList<int> ConnectedRoomIds
+    IReadOnlyList<int> ConnectedRoomIds,
+    // Which easter egg a secret room holds (outerWildsShip, outerWildsCampfire, celeste,
+    // minecraft, portal); null otherwise.
+    string? EasterEgg = null
 );

@@ -21,4 +21,7 @@ public enum RandomStream : uint
 
     /// <summary>Stable GUIDs assigned to generated elements.</summary>
     ElementIds = 7,
+
+    /// <summary>Whether a floor hides an easter-egg room, and which empty room it is.</summary>
+    EasterEggs = 8,
 }

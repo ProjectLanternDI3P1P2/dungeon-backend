@@ -1,14 +1,16 @@
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
+using Dungeon.Domain.Services.Randomness;
 using Dungeon.Domain.ValueObjects;
 
 namespace Dungeon.Domain.Services.Generation;
 
 /// <summary>
-/// A debug dungeon behind a reserved seed: two bare rooms, one above the other, joined by a
-/// straight corridor, with no element, on every floor. The party arrives in the south one.
-/// Mobs are spawned in them by hand (<see cref="DungeonRun.SpawnMob"/>) to watch how each
-/// kind moves.
+/// A debug dungeon behind a reserved seed, on every floor: a start room in the south, a bare
+/// room north of it, then every easter-egg room further north, all in one column joined by
+/// straight corridors. Mobs are spawned in the bare rooms by hand
+/// (<see cref="DungeonRun.SpawnMob"/>) to watch how each kind moves; the easter-egg rooms
+/// show their decorations without waiting for the legendary roll.
 /// </summary>
 public static class SandboxDungeon
 {
@@ -40,46 +42,115 @@ public static class SandboxDungeon
 
     private static DungeonFloor BuildFloor(int index, bool isFinalFloor)
     {
-        RoomBounds north = new(Margin + 1, Margin + 1, InteriorWidth, InteriorHeight);
-        // Below the north room: its wall, the corridor, then the wall of the south room.
-        RoomBounds south = north with
-        {
-            Y = north.Bottom + CorridorLength + 3,
-        };
-        int width = north.Right + Margin + 2;
-        int height = south.Bottom + Margin + 2;
-        int column = north.X + InteriorWidth / 2;
+        // From south to north; ids follow this order, so the start room is 0.
+        List<RoomTemplate?> stack =
+        [
+            null,
+            null,
+            .. RoomTemplates.All.Where(template => template.RoomTypes.Contains(RoomType.Secret)),
+        ];
+        int width = Margin + 1 + InteriorWidth + Margin + 1;
+        int column = Margin + 1 + InteriorWidth / 2;
 
-        CellType[] cells = new CellType[width * height];
-        foreach (RoomBounds room in (RoomBounds[])[north, south])
+        // Lay the rooms out from the north down.
+        RoomBounds[] bounds = new RoomBounds[stack.Count];
+        int top = Margin + 1;
+        for (int id = stack.Count - 1; id >= 0; id--)
         {
-            for (int y = room.Y; y <= room.Bottom; y++)
+            (int roomWidth, int roomHeight) = stack[id] is { } template
+                ? (template.Width, template.Height)
+                : (InteriorWidth, InteriorHeight);
+            bounds[id] = new RoomBounds(column - roomWidth / 2, top, roomWidth, roomHeight);
+            top = bounds[id].Bottom + CorridorLength + 3;
+        }
+
+        int height = bounds[0].Bottom + Margin + 2;
+        CellType[] cells = new CellType[width * height];
+        DeterministicRandom elementIds = DeterministicRandom.ForStream(
+            Seed,
+            RandomStream.ElementIds,
+            index
+        );
+        List<DungeonElement> elements = [];
+        List<Room> rooms = [];
+
+        for (int id = 0; id < stack.Count; id++)
+        {
+            RoomBounds room = bounds[id];
+            RoomTemplate? template = stack[id];
+            Dictionary<char, Position> firstSpots = [];
+            for (int y = 0; y < room.Height; y++)
             {
-                for (int x = room.X; x <= room.Right; x++)
+                for (int x = 0; x < room.Width; x++)
                 {
-                    cells[y * width + x] = CellType.Floor;
+                    char tile = template?.At(x, y, mirrored: false) ?? RoomTemplate.FloorTile;
+                    Position position = new(room.X + x, room.Y + y);
+                    cells[position.Y * width + position.X] = RoomTemplate.CellTypeOf(tile);
+                    firstSpots.TryAdd(tile, position);
                 }
             }
+
+            foreach (char spot in RoomTemplate.DecorationSpots)
+            {
+                if (firstSpots.TryGetValue(spot, out Position at))
+                {
+                    elements.Add(
+                        new DungeonElement(
+                            elementIds.NextGuid(),
+                            ElementType.Decoration,
+                            at,
+                            id,
+                            Decoration: RoomTemplate.DecorationOf(spot)
+                        )
+                    );
+                }
+            }
+
+            // The corridor up to the next room north.
+            if (id + 1 < stack.Count)
+            {
+                RoomBounds next = bounds[id + 1];
+                for (int y = next.Bottom + 2; y < room.Y - 1; y++)
+                {
+                    cells[y * width + column] = CellType.Floor;
+                }
+
+                cells[(next.Bottom + 1) * width + column] = CellType.Door;
+                cells[(room.Y - 1) * width + column] = CellType.Door;
+            }
+
+            RoomType type = id switch
+            {
+                0 => RoomType.Start,
+                1 => RoomType.Empty,
+                _ => RoomType.Secret,
+            };
+            int[] connections = id + 1 < stack.Count ? [id - 1, id + 1] : [id - 1];
+            rooms.Add(
+                new Room(
+                    id,
+                    type,
+                    new Position(0, stack.Count - 1 - id),
+                    room,
+                    new Position(column, room.Y + room.Height / 2),
+                    id,
+                    id == 0 ? [1] : connections,
+                    template?.EasterEgg
+                )
+            );
         }
 
-        for (int y = north.Bottom + 2; y < south.Y - 1; y++)
-        {
-            cells[y * width + column] = CellType.Floor;
-        }
-
-        cells[(north.Bottom + 1) * width + column] = CellType.Door;
-        cells[(south.Y - 1) * width + column] = CellType.Door;
         RaiseWalls(cells, width, height);
-
-        Position southCenter = new(column, south.Y + InteriorHeight / 2);
-        Position northCenter = new(column, north.Y + InteriorHeight / 2);
-        // Ids index the list: the start room is 0.
-        Room[] rooms =
-        [
-            new(0, RoomType.Start, new Position(0, 1), south, southCenter, 0, [1]),
-            new(1, RoomType.Empty, new Position(0, 0), north, northCenter, 1, [0]),
-        ];
-        return new DungeonFloor(index, isFinalFloor, width, height, cells, rooms, [], southCenter);
+        return new DungeonFloor(
+            index,
+            isFinalFloor,
+            width,
+            height,
+            cells,
+            rooms,
+            elements,
+            rooms[0].Center
+        );
     }
 
     /// <summary>Every void tile touching a room, a door or the corridor, diagonals included, becomes a wall.</summary>

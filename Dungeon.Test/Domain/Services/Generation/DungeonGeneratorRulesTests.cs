@@ -10,6 +10,8 @@ namespace Dungeon.Test.Domain.Services.Generation;
 /// <summary>US-DUNGEON-01 business rules, checked on fifty different seeds.</summary>
 public class DungeonGeneratorRulesTests
 {
+    private static readonly (int X, int Y)[] Direction4 = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
     public void Generate_AnySeed_CreatesFortyRoomsOnFourFloorsOfTen(ulong seedValue)
@@ -34,7 +36,23 @@ public class DungeonGeneratorRulesTests
 
             // Assert
             floor.Rooms.Should().OnlyContain(room => reachable.Contains(room.Center));
-            floor.Elements.Should().OnlyContain(element => reachable.Contains(element.Position));
+            // A decoration that blocks the way (a landed ship) is reached from a tile beside it.
+            floor
+                .Elements.Should()
+                .OnlyContain(element =>
+                    reachable.Contains(element.Position)
+                    || (
+                        element.Type == ElementType.Decoration
+                        && Direction4.Any(step =>
+                            reachable.Contains(
+                                new Position(
+                                    element.Position.X + step.X,
+                                    element.Position.Y + step.Y
+                                )
+                            )
+                        )
+                    )
+                );
             reachable.Count.Should().Be(CountWalkableTiles(floor));
         }
     }
@@ -151,7 +169,10 @@ public class DungeonGeneratorRulesTests
             counts[RoomType.Start].Should().Be(1);
             counts[RoomType.Boss].Should().Be(1);
             counts[RoomType.Treasure].Should().Be(1);
-            counts[RoomType.Empty].Should().Be(1);
+            // An easter-egg room, once in a long while, takes the place of the empty room.
+            (counts.GetValueOrDefault(RoomType.Empty) + counts.GetValueOrDefault(RoomType.Secret))
+                .Should()
+                .Be(1);
             counts[RoomType.Combat].Should().Be(6);
             floor.Rooms[0].Type.Should().Be(RoomType.Start);
         }
@@ -168,7 +189,13 @@ public class DungeonGeneratorRulesTests
             floor
                 .Elements.Should()
                 .OnlyContain(element =>
-                    floor.GetCell(element.Position) == CellType.Floor
+                    (
+                        floor.GetCell(element.Position) == CellType.Floor
+                        || (
+                            element.Type == ElementType.Decoration
+                            && floor.GetCell(element.Position) == CellType.Decoration
+                        )
+                    )
                     && floor.GetRoomId(element.Position) == element.RoomId
                 );
             floor
