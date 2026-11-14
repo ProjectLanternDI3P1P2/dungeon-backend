@@ -398,8 +398,7 @@ public class DungeonGeneratorRulesTests
         DungeonFloor floor = new(
             valid.Index,
             valid.IsFinalFloor,
-            valid.Width,
-            valid.Height,
+            new GridSize(valid.Width, valid.Height),
             [
                 .. from y in Enumerable.Range(0, valid.Height)
                 from x in Enumerable.Range(0, valid.Width)
@@ -417,6 +416,45 @@ public class DungeonGeneratorRulesTests
         violations
             .Should()
             .Contain($"element {elements[0].Id}: an enemy needs a kind, other elements have none");
+    }
+
+    [Fact]
+    public void ValidateFloor_ConnectionThatTheOtherRoomDoesNotShare_IsReportedAsOneWay()
+    {
+        // Arrange: a valid generated floor whose start room gains a door the other room lacks.
+        DungeonFloor valid = DungeonTestData.Generate(DungeonTestData.ReferenceSeed).Floors[0];
+        Room stranger = valid.Rooms.First(room =>
+            room.Id != 0 && !room.ConnectedRoomIds.Contains(0)
+        );
+        Room[] rooms = [.. valid.Rooms];
+        Room start = rooms[0];
+        rooms[0] = new Room(
+            start.Id,
+            start.Type,
+            new RoomLayout(start.GridCell, start.Interior, start.Center),
+            start.Depth,
+            [.. start.ConnectedRoomIds, stranger.Id]
+        );
+        DungeonFloor floor = new(
+            valid.Index,
+            valid.IsFinalFloor,
+            new GridSize(valid.Width, valid.Height),
+            [
+                .. from y in Enumerable.Range(0, valid.Height)
+                from x in Enumerable.Range(0, valid.Width)
+                select valid.GetCell(new Position(x, y)),
+            ],
+            rooms,
+            valid.Elements,
+            valid.Entrance
+        );
+
+        // Act
+        IReadOnlyList<string> violations = DungeonValidator.ValidateFloor(floor, valid.Rooms.Count);
+
+        // Assert: that connection, and only that one.
+        violations.Should().ContainSingle(violation => violation.Contains("one-way"));
+        violations.Should().Contain($"connection 0-{stranger.Id} is one-way");
     }
 
     [Fact]
