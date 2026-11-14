@@ -71,12 +71,13 @@ public static class DungeonValidator
 
         foreach (Room room in floor.Rooms)
         {
-            foreach (int connectedId in room.ConnectedRoomIds)
+            foreach (
+                int connectedId in room.ConnectedRoomIds.Where(connectedId =>
+                    !floor.Rooms[connectedId].ConnectedRoomIds.Contains(room.Id)
+                )
+            )
             {
-                if (!floor.Rooms[connectedId].ConnectedRoomIds.Contains(room.Id))
-                {
-                    violations.Add($"connection {room.Id}-{connectedId} is one-way");
-                }
+                violations.Add($"connection {room.Id}-{connectedId} is one-way");
             }
 
             if (!floor.GetCell(room.Center).IsWalkable())
