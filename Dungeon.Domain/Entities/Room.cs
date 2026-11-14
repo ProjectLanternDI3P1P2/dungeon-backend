@@ -8,9 +8,7 @@ public sealed class Room
     public Room(
         int id,
         RoomType type,
-        Position gridCell,
-        RoomBounds interior,
-        Position center,
+        RoomLayout layout,
         int depth,
         IReadOnlyList<int> connectedRoomIds,
         string? easterEgg = null
@@ -19,9 +17,9 @@ public sealed class Room
         EasterEgg = easterEgg;
         Id = id;
         Type = type;
-        GridCell = gridCell;
-        Interior = interior;
-        Center = center;
+        GridCell = layout.GridCell;
+        Interior = layout.Interior;
+        Center = layout.Center;
         Depth = depth;
         ConnectedRoomIds = connectedRoomIds;
     }

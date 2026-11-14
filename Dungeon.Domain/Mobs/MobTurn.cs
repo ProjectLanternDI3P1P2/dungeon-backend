@@ -21,10 +21,45 @@ internal static class MobTurn
         int turn = run.Turn + 1;
         Discover(run, floor, hero);
 
-        DistanceField walking = DistanceField.From(floor, hero, diagonal: false);
-        DistanceField? flying = null;
-
+        DistanceFields fields = new(floor, hero);
         List<RunMob> active = [.. run.Mobs.Where(mob => mob.IsActive)];
+        AggroMobsInRange(run, active, fields.Walking, rules);
+
+        // Walking into the glow a mage announced is a contact too: the fight starts before the
+        // mage can pick another tile.
+        foreach (RunMob mage in active.Where(mob => mob.Teleport == hero))
+        {
+            mage.Kill(turn);
+        }
+
+        bool IsFree(Position tile) =>
+            tile != hero && !active.Any(other => other.IsActive && other.Position == tile);
+
+        foreach (RunMob mob in active.Where(mob => mob.IsActive))
+        {
+            Act(mob, run, floor, rules, fields, IsFree);
+            mob.NextTick();
+        }
+
+        // TODO(tech-debt): contact kills the mob in place of a fight — call Combat with its pack
+        // (fight-trigger user story).
+        foreach (RunMob mob in active.Where(mob => mob.Position.DistanceTo(hero) <= 1))
+        {
+            mob.Kill(turn);
+        }
+    }
+
+    /// <summary>
+    /// Mobs in range turn to aggro: within their aggro range in steps, or, with no range,
+    /// when the party has discovered their room.
+    /// </summary>
+    private static void AggroMobsInRange(
+        DungeonRun run,
+        List<RunMob> active,
+        DistanceField walking,
+        MobRules rules
+    )
+    {
         foreach (RunMob mob in active.Where(mob => !mob.IsAggro))
         {
             int? range = rules.For(mob.Kind).AggroRange;
@@ -36,58 +71,81 @@ internal static class MobTurn
                 mob.Aggro();
             }
         }
+    }
 
-        // Walking into the glow a mage announced is a contact too: the fight starts before the
-        // mage can pick another tile.
-        foreach (RunMob mage in active.Where(mob => mob.Teleport == hero))
+    /// <summary>What one mob does this turn, on its cadence: a mage jumps, an aggro mob chases, the others idle.</summary>
+    private static void Act(
+        RunMob mob,
+        DungeonRun run,
+        DungeonFloor floor,
+        MobRules rules,
+        DistanceFields fields,
+        Func<Position, bool> isFree
+    )
+    {
+        MobBehaviour behaviour = rules.For(mob.Kind);
+        bool diagonal = behaviour.Step == MobStep.Diagonal;
+        if (mob.IsAggro && behaviour.Step == MobStep.Teleport)
         {
-            mage.Kill(turn);
+            // Announces on the turn before its action, so it acts off-cadence too.
+            Teleport(mob, floor, fields.Walking, behaviour, fields.Hero, isFree);
+            return;
         }
 
-        foreach (RunMob mob in active.Where(mob => mob.IsActive))
+        if (!behaviour.ActsOn(mob.Tick))
         {
-            MobBehaviour behaviour = rules.For(mob.Kind);
-            bool diagonal = behaviour.Step == MobStep.Diagonal;
-            if (mob.IsAggro && behaviour.Step == MobStep.Teleport)
-            {
-                // Announces on the turn before its action, so it acts off-cadence too.
-                Teleport(mob, floor, walking, behaviour, hero, IsFree);
-            }
-            else if (!behaviour.ActsOn(mob.Tick))
-            {
-                // Its cadence lets it rest this turn.
-            }
-            else if (mob.IsAggro)
-            {
-                DistanceField field = diagonal
-                    ? flying ??= DistanceField.From(floor, hero, diagonal: true)
-                    : walking;
-                Chase(mob, floor, field, diagonal, IsFree);
-            }
-            else if (behaviour.Idle == MobIdle.Wander)
-            {
-                Wander(mob, run, floor, rules.WanderRadius, diagonal, IsFree);
-            }
-            else if (
-                behaviour.Idle == MobIdle.NearestDoor
-                && run.DiscoveredRoomIds.Contains(mob.HomeRoomId)
-            )
-            {
-                HoldTheNearestDoor(mob, floor, IsFree);
-            }
-
-            mob.NextTick();
+            // Its cadence lets it rest this turn.
+            return;
         }
 
-        // TODO(tech-debt): contact kills the mob in place of a fight — call Combat with its pack
-        // (fight-trigger user story).
-        foreach (RunMob mob in active.Where(mob => mob.Position.DistanceTo(hero) <= 1))
+        if (mob.IsAggro)
         {
-            mob.Kill(turn);
+            Chase(mob, floor, fields.For(diagonal), diagonal, isFree);
+            return;
         }
 
-        bool IsFree(Position tile) =>
-            tile != hero && !active.Any(other => other.IsActive && other.Position == tile);
+        Idle(mob, run, floor, rules, behaviour, diagonal, isFree);
+    }
+
+    /// <summary>Before its aggro: wandering in its room, or holding the nearest door of it.</summary>
+    private static void Idle(
+        RunMob mob,
+        DungeonRun run,
+        DungeonFloor floor,
+        MobRules rules,
+        MobBehaviour behaviour,
+        bool diagonal,
+        Func<Position, bool> isFree
+    )
+    {
+        if (behaviour.Idle == MobIdle.Wander)
+        {
+            Wander(mob, run, floor, rules.WanderRadius, diagonal, isFree);
+        }
+        else if (
+            behaviour.Idle == MobIdle.NearestDoor
+            && run.DiscoveredRoomIds.Contains(mob.HomeRoomId)
+        )
+        {
+            HoldTheNearestDoor(mob, floor, isFree);
+        }
+    }
+
+    /// <summary>
+    /// The distances to the hero over the tiles of the floor: on foot from the start of the turn,
+    /// and as the crow flies (diagonals included) for the mobs that fly, worked out only when
+    /// one of them needs it.
+    /// </summary>
+    private sealed class DistanceFields(DungeonFloor floor, Position hero)
+    {
+        private DistanceField? _flying;
+
+        public Position Hero => hero;
+
+        public DistanceField Walking { get; } = DistanceField.From(floor, hero, diagonal: false);
+
+        public DistanceField For(bool diagonal) =>
+            diagonal ? _flying ??= DistanceField.From(floor, hero, diagonal: true) : Walking;
     }
 
     /// <summary>A room is discovered when a hero stands in it or on one of its doors.</summary>

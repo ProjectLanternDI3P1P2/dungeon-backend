@@ -75,9 +75,11 @@ internal static class FloorBuilder
             .Select(room => new Room(
                 room.Id,
                 room.Type,
-                new Position(room.GridCell.X - minGridX, room.GridCell.Y - minGridY),
-                room.Interior,
-                room.Center,
+                new RoomLayout(
+                    new Position(room.GridCell.X - minGridX, room.GridCell.Y - minGridY),
+                    room.Interior,
+                    room.Center
+                ),
                 room.Depth,
                 room.Connections.Order().ToArray(),
                 room.Template.EasterEgg
@@ -87,8 +89,7 @@ internal static class FloorBuilder
         return new DungeonFloor(
             floorIndex,
             isFinalFloor,
-            width,
-            height,
+            new GridSize(width, height),
             grid.Cells,
             frozenRooms,
             elements,
@@ -202,28 +203,39 @@ internal static class FloorBuilder
     {
         foreach (RoomDraft room in rooms)
         {
-            RoomTemplate template = room.Template;
-            for (int y = 0; y < template.Height; y++)
+            StampRoom(grid, room);
+        }
+    }
+
+    /// <summary>Draws the template of a room on the grid, and notes where its spots are.</summary>
+    private static void StampRoom(TileGrid grid, RoomDraft room)
+    {
+        RoomTemplate template = room.Template;
+        for (int y = 0; y < template.Height; y++)
+        {
+            for (int x = 0; x < template.Width; x++)
             {
-                for (int x = 0; x < template.Width; x++)
+                char tile = template.At(x, y, room.IsMirrored);
+                Position position = new(room.Interior.X + x, room.Interior.Y + y);
+                grid[position.X, position.Y] = RoomTemplate.CellTypeOf(tile);
+
+                if (tile is not (RoomTemplate.FloorTile or RoomTemplate.VoidTile))
                 {
-                    char tile = template.At(x, y, room.IsMirrored);
-                    Position position = new(room.Interior.X + x, room.Interior.Y + y);
-                    grid[position.X, position.Y] = RoomTemplate.CellTypeOf(tile);
-
-                    if (tile is not (RoomTemplate.FloorTile or RoomTemplate.VoidTile))
-                    {
-                        if (!room.Spots.TryGetValue(tile, out List<Position>? spots))
-                        {
-                            spots = [];
-                            room.Spots[tile] = spots;
-                        }
-
-                        spots.Add(position);
-                    }
+                    NoteSpot(room, tile, position);
                 }
             }
         }
+    }
+
+    private static void NoteSpot(RoomDraft room, char tile, Position position)
+    {
+        if (!room.Spots.TryGetValue(tile, out List<Position>? spots))
+        {
+            spots = [];
+            room.Spots[tile] = spots;
+        }
+
+        spots.Add(position);
     }
 
     private static void CarveCorridors(TileGrid grid, List<RoomDraft> rooms)
@@ -236,39 +248,68 @@ internal static class FloorBuilder
                     .Select(id => rooms[id])
             )
             {
-                bool horizontal = room.GridCell.Y == other.GridCell.Y;
-                (RoomDraft first, RoomDraft second) = horizontal
-                    ? (room.GridCell.X < other.GridCell.X ? (room, other) : (other, room))
-                    : (room.GridCell.Y < other.GridCell.Y ? (room, other) : (other, room));
-
-                if (horizontal)
-                {
-                    int y = first.Center.Y;
-                    int firstDoor = first.Interior.Right + 1;
-                    int secondDoor = second.Interior.X - 1;
-                    for (int x = firstDoor + 1; x < secondDoor; x++)
-                    {
-                        grid[x, y] = CellType.Floor;
-                    }
-
-                    grid[firstDoor, y] = CellType.Door;
-                    grid[secondDoor, y] = CellType.Door;
-                }
-                else
-                {
-                    int x = first.Center.X;
-                    int firstDoor = first.Interior.Bottom + 1;
-                    int secondDoor = second.Interior.Y - 1;
-                    for (int y = firstDoor + 1; y < secondDoor; y++)
-                    {
-                        grid[x, y] = CellType.Floor;
-                    }
-
-                    grid[x, firstDoor] = CellType.Door;
-                    grid[x, secondDoor] = CellType.Door;
-                }
+                CarveCorridor(grid, room, other);
             }
         }
+    }
+
+    /// <summary>
+    /// A straight corridor between two neighbouring rooms, door to door: along a row when they
+    /// stand side by side on the room grid, along a column otherwise.
+    /// </summary>
+    private static void CarveCorridor(TileGrid grid, RoomDraft room, RoomDraft other)
+    {
+        bool horizontal = room.GridCell.Y == other.GridCell.Y;
+        (RoomDraft first, RoomDraft second) = Ordered(room, other, horizontal);
+
+        if (horizontal)
+        {
+            CarveAlongARow(grid, first, second);
+        }
+        else
+        {
+            CarveAlongAColumn(grid, first, second);
+        }
+    }
+
+    /// <summary>The two rooms of a corridor, the western one first, or the northern one.</summary>
+    private static (RoomDraft First, RoomDraft Second) Ordered(
+        RoomDraft room,
+        RoomDraft other,
+        bool horizontal
+    )
+    {
+        int roomPlace = horizontal ? room.GridCell.X : room.GridCell.Y;
+        int otherPlace = horizontal ? other.GridCell.X : other.GridCell.Y;
+        return roomPlace < otherPlace ? (room, other) : (other, room);
+    }
+
+    private static void CarveAlongARow(TileGrid grid, RoomDraft first, RoomDraft second)
+    {
+        int y = first.Center.Y;
+        int firstDoor = first.Interior.Right + 1;
+        int secondDoor = second.Interior.X - 1;
+        for (int x = firstDoor + 1; x < secondDoor; x++)
+        {
+            grid[x, y] = CellType.Floor;
+        }
+
+        grid[firstDoor, y] = CellType.Door;
+        grid[secondDoor, y] = CellType.Door;
+    }
+
+    private static void CarveAlongAColumn(TileGrid grid, RoomDraft first, RoomDraft second)
+    {
+        int x = first.Center.X;
+        int firstDoor = first.Interior.Bottom + 1;
+        int secondDoor = second.Interior.Y - 1;
+        for (int y = firstDoor + 1; y < secondDoor; y++)
+        {
+            grid[x, y] = CellType.Floor;
+        }
+
+        grid[x, firstDoor] = CellType.Door;
+        grid[x, secondDoor] = CellType.Door;
     }
 
     /// <summary>
@@ -305,16 +346,130 @@ internal static class FloorBuilder
         List<RoomDraft> rooms
     )
     {
-        List<DungeonElement> elements = [];
+        ElementPlacement placement = new(mobs, elementIds);
         int maxDepth = Math.Max(1, rooms.Max(room => room.Depth));
 
-        void Add(
+        foreach (RoomDraft room in rooms.Where(room => room.Type != RoomType.Start))
+        {
+            // Spike traps are part of the design of a room: all of them are armed.
+            foreach (Position trap in room.SpotsOf(RoomTemplate.TrapSpot))
+            {
+                placement.Add(ElementType.Trap, trap, room);
+            }
+
+            switch (room.Type)
+            {
+                case RoomType.Boss:
+                    // The boss stands alone: defeating it is the fight that opens the gate.
+                    placement.Add(ElementType.Boss, room.SpotsOf(RoomTemplate.BossSpot)[0], room);
+                    break;
+
+                case RoomType.Treasure:
+                    foreach (Position treasure in room.SpotsOf(RoomTemplate.TreasureSpot))
+                    {
+                        placement.Add(ElementType.Item, treasure, room);
+                    }
+
+                    break;
+
+                case RoomType.Combat:
+                    PlaceEnemies(grid, placement, room, maxDepth);
+                    break;
+
+                case RoomType.Secret:
+                    PlaceDecorations(placement, room);
+                    break;
+
+                default:
+                    // Empty rooms only hold their traps.
+                    break;
+            }
+        }
+
+        return placement.Elements;
+    }
+
+    /// <summary>The enemy silhouettes of a combat room: more of them the deeper the room.</summary>
+    private static void PlaceEnemies(
+        TileGrid grid,
+        ElementPlacement placement,
+        RoomDraft room,
+        int maxDepth
+    )
+    {
+        // In a labyrinth every floor tile touches a wall: there, and only there,
+        // a mob may stand against one.
+        List<Position> spots = MobSpots(grid, room, awayFromWalls: true);
+        // TODO(tech-debt): a labyrinth is inferred (no tile clear of walls), not
+        // declared — add an AllowsMobsAgainstWalls flag to the templates if another
+        // kind of room ever falls back here.
+        if (spots.Count == 0)
+        {
+            spots = MobSpots(grid, room, awayFromWalls: false);
+        }
+
+        placement.Mobs.Shuffle(spots);
+
+        // Difficulty grows with the distance from the start room.
+        int enemyCount = Math.Min(
+            MaximumEnemiesPerRoom,
+            1 + room.Depth * 2 / maxDepth + (placement.Mobs.Chance(ExtraEnemyChancePercent) ? 1 : 0)
+        );
+
+        List<Position> placed = [];
+        foreach (Position spot in spots)
+        {
+            if (placed.Count == enemyCount)
+            {
+                break;
+            }
+
+            if (placed.All(other => other.DistanceTo(spot) >= MobSpacing))
+            {
+                placed.Add(spot);
+                placement.Add(ElementType.Enemy, spot, room);
+            }
+        }
+    }
+
+    /// <summary>One element per decoration of an easter-egg room, on the first tile of its footprint.</summary>
+    private static void PlaceDecorations(ElementPlacement placement, RoomDraft room)
+    {
+        foreach (char spot in RoomTemplate.DecorationSpots)
+        {
+            List<Position> footprint = room.SpotsOf(spot);
+            if (footprint.Count > 0)
+            {
+                placement.Add(
+                    ElementType.Decoration,
+                    footprint[0],
+                    room,
+                    RoomTemplate.DecorationOf(spot)
+                );
+            }
+        }
+    }
+
+    /// <summary>
+    /// The elements of a floor as they are placed, with the two random streams that decide them:
+    /// the kind of each enemy comes from <see cref="Mobs"/>, the id of each element from the
+    /// stream of identifiers. The order of the draws is part of the dungeon of a seed.
+    /// </summary>
+    private sealed class ElementPlacement(DeterministicRandom mobs, DeterministicRandom elementIds)
+    {
+        public List<DungeonElement> Elements { get; } = [];
+
+        /// <summary>Also decides where the enemies of a room stand.</summary>
+        public DeterministicRandom Mobs => mobs;
+
+        public void Add(
             ElementType type,
             Position position,
             RoomDraft room,
             DecorationKind? decoration = null
-        ) =>
-            elements.Add(
+        )
+        {
+            Elements.Add(
                 new DungeonElement(
                     elementIds.NextGuid(),
                     type,
@@ -324,99 +479,7 @@ internal static class FloorBuilder
                     decoration
                 )
             );
-
-        foreach (RoomDraft room in rooms)
-        {
-            if (room.Type == RoomType.Start)
-            {
-                continue;
-            }
-
-            // Spike traps are part of the design of a room: all of them are armed.
-            foreach (Position trap in room.SpotsOf(RoomTemplate.TrapSpot))
-            {
-                Add(ElementType.Trap, trap, room);
-            }
-
-            switch (room.Type)
-            {
-                case RoomType.Boss:
-                    // The boss stands alone: defeating it is the fight that opens the gate.
-                    Add(ElementType.Boss, room.SpotsOf(RoomTemplate.BossSpot)[0], room);
-                    break;
-
-                case RoomType.Treasure:
-                    foreach (Position treasure in room.SpotsOf(RoomTemplate.TreasureSpot))
-                    {
-                        Add(ElementType.Item, treasure, room);
-                    }
-
-                    break;
-
-                case RoomType.Combat:
-                    // In a labyrinth every floor tile touches a wall: there, and only there,
-                    // a mob may stand against one.
-                    List<Position> spots = MobSpots(grid, room, awayFromWalls: true);
-                    // TODO(tech-debt): a labyrinth is inferred (no tile clear of walls), not
-                    // declared — add an AllowsMobsAgainstWalls flag to the templates if another
-                    // kind of room ever falls back here.
-                    if (spots.Count == 0)
-                    {
-                        spots = MobSpots(grid, room, awayFromWalls: false);
-                    }
-
-                    mobs.Shuffle(spots);
-
-                    // Difficulty grows with the distance from the start room.
-                    int enemyCount = Math.Min(
-                        MaximumEnemiesPerRoom,
-                        1
-                            + room.Depth * 2 / maxDepth
-                            + (mobs.Chance(ExtraEnemyChancePercent) ? 1 : 0)
-                    );
-
-                    List<Position> placed = [];
-                    foreach (Position spot in spots)
-                    {
-                        if (placed.Count == enemyCount)
-                        {
-                            break;
-                        }
-
-                        if (placed.All(other => other.DistanceTo(spot) >= MobSpacing))
-                        {
-                            placed.Add(spot);
-                            Add(ElementType.Enemy, spot, room);
-                        }
-                    }
-
-                    break;
-
-                case RoomType.Secret:
-                    // One element per decoration, on the first tile of its footprint.
-                    foreach (char spot in RoomTemplate.DecorationSpots)
-                    {
-                        List<Position> footprint = room.SpotsOf(spot);
-                        if (footprint.Count > 0)
-                        {
-                            Add(
-                                ElementType.Decoration,
-                                footprint[0],
-                                room,
-                                RoomTemplate.DecorationOf(spot)
-                            );
-                        }
-                    }
-
-                    break;
-
-                default:
-                    // Empty rooms only hold their traps.
-                    break;
-            }
         }
-
-        return elements;
     }
 
     /// <summary>

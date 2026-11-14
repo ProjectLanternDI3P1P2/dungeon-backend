@@ -22,7 +22,7 @@ public sealed class DungeonRunGrpcService(IMediator mediator, ILogger logger)
     {
         Guid commandId = ParseUuid(request.CommandId, "command_id");
         Guid gameSessionId = ParseUuid(request.GameSessionId, "game_session_id");
-        IReadOnlyList<Guid> heroIds = ParseParticipants(request.Participants);
+        List<Guid> heroIds = ParseParticipants(request.Participants);
         string? seed = string.IsNullOrWhiteSpace(request.Seed) ? null : request.Seed;
 
         logger.Information(

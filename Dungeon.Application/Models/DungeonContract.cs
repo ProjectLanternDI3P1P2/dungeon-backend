@@ -28,10 +28,19 @@ public sealed record DungeonElementResult(
             element.Position.X,
             element.Position.Y,
             element.RoomId,
-            element.Kind is { } kind ? DungeonContract.Name(kind)
-                : element.Decoration is { } decoration ? DungeonContract.Name(decoration)
-                : null
+            KindOf(element)
         );
+
+    /// <summary>What an enemy is, or what a decoration shows; null for any other element.</summary>
+    private static string? KindOf(DungeonElement element)
+    {
+        if (element.Kind is { } kind)
+        {
+            return DungeonContract.Name(kind);
+        }
+
+        return element.Decoration is { } decoration ? DungeonContract.Name(decoration) : null;
+    }
 }
 
 /// <summary>A living mob of the current floor, where it stands this turn.</summary>
