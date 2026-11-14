@@ -31,6 +31,9 @@ public sealed class GeneratedDungeon
 
     public IReadOnlyList<DungeonFloor> Floors { get; }
 
+    /// <summary>The debug sandbox, where mobs are spawned by hand (development only).</summary>
+    public bool IsSandbox { get; init; }
+
     /// <summary>The rooms of the dungeon, every floor included (US-DUNGEON-01).</summary>
     public int RoomCount => Floors.Sum(floor => floor.Rooms.Count);
 }

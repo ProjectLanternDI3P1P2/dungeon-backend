@@ -28,6 +28,7 @@ public class DungeonRunMobsTests
             .Equal(
                 floor
                     .Elements.Where(element => element.Type == ElementType.Enemy)
+                    .OrderBy(element => element.Id)
                     .Select(element =>
                         (element.Id, element.Kind!.Value, element.Position, element.RoomId)
                     )
@@ -72,6 +73,7 @@ public class DungeonRunMobsTests
                 dungeon
                     .Floors[1]
                     .Elements.Where(element => element.Type == ElementType.Enemy)
+                    .OrderBy(element => element.Id)
                     .Select(element => element.Id)
             );
         run.Mobs.Should().OnlyContain(mob => mob.IsActive && !mob.IsAggro);

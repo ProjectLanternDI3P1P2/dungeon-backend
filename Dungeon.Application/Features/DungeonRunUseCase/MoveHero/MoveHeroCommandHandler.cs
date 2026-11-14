@@ -4,6 +4,8 @@ using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Repositories;
+using FluentValidation;
+using FluentValidation.Results;
 using MediatR;
 
 namespace Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
@@ -21,8 +23,17 @@ public sealed class MoveHeroCommandHandler(
             cancellationToken
         );
 
-        // The validator has already rejected unknown directions (422).
-        DungeonContract.TryParseDirection(request.Direction, out Direction direction);
+        // The validator has already rejected unknown directions (422). A command that skipped
+        // it is refused the same way, instead of moving the hero in the default direction.
+        if (!DungeonContract.TryParseDirection(request.Direction, out Direction direction))
+        {
+            throw new ValidationException([
+                new ValidationFailure(
+                    nameof(request.Direction),
+                    MoveHeroValidator.DirectionMessage
+                ),
+            ]);
+        }
 
         // The walkability rule lives in the domain: walls, obstacles, the void and anything
         // outside the floor raise InvalidMoveException (409) and leave the run untouched.

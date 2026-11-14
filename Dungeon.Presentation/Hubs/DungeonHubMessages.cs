@@ -9,6 +9,10 @@ public sealed record JoinDungeonRequest(Guid DungeonId);
 /// <param name="Direction">north, east, south or west: one tile per command (turn-based).</param>
 public sealed record MoveHeroRequest(Guid CommandId, Guid DungeonId, string Direction);
 
+/// <summary>Debug only: a mob on a tile of the sandbox dungeon (seed <c>0000000SANDBX</c>).</summary>
+/// <param name="Kind">zombie, mage, goblin or bat.</param>
+public sealed record SpawnMobRequest(Guid CommandId, Guid DungeonId, string Kind, int X, int Y);
+
 /// <summary>
 /// The explicit answer of the Hub to every client call: accepted with the snapshot that
 /// resulted, or refused with the reason and nothing changed.

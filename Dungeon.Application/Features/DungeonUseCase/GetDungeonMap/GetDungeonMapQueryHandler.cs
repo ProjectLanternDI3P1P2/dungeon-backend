@@ -72,6 +72,7 @@ public sealed class GetDungeonMapQueryHandler(
             room.Interior.Height,
             PositionResult.From(room.Center),
             room.Depth,
-            room.ConnectedRoomIds
+            room.ConnectedRoomIds,
+            room.EasterEgg
         );
 }

@@ -30,6 +30,9 @@ public sealed class GetDungeonRunByIdResult
     /// <summary>The mobs that died on this turn, on the tile they fell on.</summary>
     public IReadOnlyList<MobResult> KilledMobs { get; init; } = [];
 
+    /// <summary>Item element IDs already opened on the current floor.</summary>
+    public IReadOnlyList<Guid> OpenedChestElementIds { get; init; } = [];
+
     /// <summary>The rooms of the current floor the party has discovered: their mobs know it is here.</summary>
     public IReadOnlyList<int> DiscoveredRoomIds { get; init; } = [];
 
@@ -71,6 +74,11 @@ public sealed class GetDungeonRunByIdResult
                 .ToList(),
             DiscoveredRoomIds = [.. run.DiscoveredRoomIds],
             VisitedTiles = Convert.ToBase64String(run.VisitedTiles.Span),
+            OpenedChestElementIds = run
+                .OpenedChests.Where(opened => opened.Floor == run.CurrentFloor)
+                .Select(opened => opened.ElementId)
+                .Order()
+                .ToList(),
             StartedAt = run.StartedAt,
         };
     }

@@ -71,12 +71,13 @@ public static class DungeonValidator
 
         foreach (Room room in floor.Rooms)
         {
-            foreach (int connectedId in room.ConnectedRoomIds)
+            foreach (
+                int connectedId in room.ConnectedRoomIds.Where(connectedId =>
+                    !floor.Rooms[connectedId].ConnectedRoomIds.Contains(room.Id)
+                )
+            )
             {
-                if (!floor.Rooms[connectedId].ConnectedRoomIds.Contains(room.Id))
-                {
-                    violations.Add($"connection {room.Id}-{connectedId} is one-way");
-                }
+                violations.Add($"connection {room.Id}-{connectedId} is one-way");
             }
 
             if (!floor.GetCell(room.Center).IsWalkable())
@@ -203,10 +204,12 @@ public static class DungeonValidator
     private static void CheckElements(DungeonFloor floor, List<string> violations)
     {
         if (
-            floor.Elements.Select((element, index) => element.Id != index).Any(mismatch => mismatch)
+            floor.Elements.Any(element => element.Id == Guid.Empty)
+            || floor.Elements.Select(element => element.Id).Distinct().Count()
+                != floor.Elements.Count
         )
         {
-            violations.Add("element ids must be 0..n-1 in order");
+            violations.Add("element ids must be non-empty and unique");
         }
 
         if (
@@ -219,9 +222,16 @@ public static class DungeonValidator
 
         foreach (DungeonElement element in floor.Elements)
         {
+            // A decoration stands on its own ground, or on the floor below a wall it hangs on.
             bool onFloor =
                 floor.Contains(element.Position)
-                && floor.GetCell(element.Position) == CellType.Floor;
+                && (
+                    floor.GetCell(element.Position) == CellType.Floor
+                    || (
+                        element.Type == ElementType.Decoration
+                        && floor.GetCell(element.Position) == CellType.Decoration
+                    )
+                );
             if (!onFloor || floor.GetRoomId(element.Position) != element.RoomId)
             {
                 violations.Add(
@@ -233,6 +243,13 @@ public static class DungeonValidator
             {
                 violations.Add(
                     $"element {element.Id}: an enemy needs a kind, other elements have none"
+                );
+            }
+
+            if ((element.Type == ElementType.Decoration) != (element.Decoration != null))
+            {
+                violations.Add(
+                    $"element {element.Id}: a decoration says what it shows, other elements do not"
                 );
             }
         }

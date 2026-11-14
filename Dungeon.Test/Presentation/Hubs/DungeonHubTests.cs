@@ -1,5 +1,6 @@
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
+using Dungeon.Application.Features.DungeonRunUseCase.SpawnMob;
 using Dungeon.Domain.Exceptions;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Presentation.Hubs;
@@ -7,6 +8,7 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Hosting;
 using Moq;
 using Serilog.Core;
 
@@ -20,6 +22,7 @@ public class DungeonHubTests
     private readonly Mock<IMediator> _mediatorMock = new();
     private readonly Mock<IDungeonClient> _groupMock = new();
     private readonly Mock<IGroupManager> _groupsMock = new();
+    private readonly Mock<IHostEnvironment> _environmentMock = new();
     private readonly GetDungeonRunByIdResult _snapshot = new() { Id = DungeonId, Turn = 1 };
     private readonly DungeonHub _hub;
 
@@ -40,9 +43,12 @@ public class DungeonHubTests
         contextMock.SetupGet(context => context.ConnectionId).Returns(ConnectionId);
         contextMock.SetupGet(context => context.ConnectionAborted).Returns(CancellationToken.None);
 
+        RunIn(Environments.Production);
+
         _hub = new DungeonHub(
             _mediatorMock.Object,
             new HubCommandCache(new MemoryCache(new MemoryCacheOptions())),
+            _environmentMock.Object,
             Logger.None
         )
         {
@@ -176,6 +182,44 @@ public class DungeonHubTests
         result.Error!.Code.Should().Be(DungeonCommandErrorCodes.Validation);
         _mediatorMock.VerifyNoOtherCalls();
     }
+
+    [Fact]
+    public async Task SpawnMob_InDevelopment_SendsTheCommand()
+    {
+        // Arrange
+        RunIn(Environments.Development);
+
+        // Act
+        DungeonCommandResult result = await _hub.SpawnMob(Spawn());
+
+        // Assert
+        result.Accepted.Should().BeTrue();
+        _mediatorMock.Verify(mediator =>
+            mediator.Send(
+                new SpawnMobCommand(DungeonId, "zombie", 3, 4),
+                It.IsAny<CancellationToken>()
+            )
+        );
+    }
+
+    [Fact]
+    public async Task SpawnMob_OutsideDevelopment_IsRefusedWithoutSendingAnything()
+    {
+        // Act
+        DungeonCommandResult result = await _hub.SpawnMob(Spawn());
+
+        // Assert
+        result.Accepted.Should().BeFalse();
+        result.Error!.Code.Should().Be(DungeonCommandErrorCodes.Refused);
+        _mediatorMock.VerifyNoOtherCalls();
+    }
+
+    private void RunIn(string environmentName) =>
+        _environmentMock
+            .SetupGet(environment => environment.EnvironmentName)
+            .Returns(environmentName);
+
+    private static SpawnMobRequest Spawn() => new(Guid.NewGuid(), DungeonId, "zombie", 3, 4);
 
     private static MoveHeroRequest Move(Guid commandId) => new(commandId, DungeonId, "east");
 }

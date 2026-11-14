@@ -17,6 +17,7 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  packages: read
 
 jobs:
   sonar:
@@ -74,6 +75,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           DUNGEON_TEST_DATABASE_CONNECTION: Host=localhost;Port=5432;Database=dungeon_test;Username=dungeon
+          NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }};ValidAuthenticationTypes=Basic
         run: |
           dotnet dotnet-sonarscanner begin \
             /k:"ProjectLanternDI3P1P2_dungeon-backend" \

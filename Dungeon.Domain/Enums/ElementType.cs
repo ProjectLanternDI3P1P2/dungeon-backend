@@ -15,4 +15,10 @@ public enum ElementType
 
     /// <summary>Floor spikes. The tile stays walkable; the effect is decided elsewhere.</summary>
     Trap,
+
+    /// <summary>
+    /// A piece of an easter-egg room: a ship, a strawberry, a portal... Purely decorative;
+    /// its <see cref="Entities.DungeonElement.Decoration"/> says which one.
+    /// </summary>
+    Decoration,
 }

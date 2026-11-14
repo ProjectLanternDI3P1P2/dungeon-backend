@@ -9,7 +9,9 @@ public sealed class DungeonRunRepository(DungeonDbContext dbContext) : IDungeonR
 {
     public async Task<DungeonRun?> GetByIdAsync(Guid runId, CancellationToken cancellationToken)
     {
-        return await dbContext.DungeonRuns.FindAsync([runId], cancellationToken);
+        return await dbContext
+            .DungeonRuns.Include(run => run.OpenedChests)
+            .SingleOrDefaultAsync(run => run.Id == runId, cancellationToken);
     }
 
     public async Task<DungeonRun?> FindLatestBySeedAsync(
@@ -30,7 +32,8 @@ public sealed class DungeonRunRepository(DungeonDbContext dbContext) : IDungeonR
     )
     {
         return await dbContext
-            .DungeonRuns.AsNoTracking()
+            .DungeonRuns.Include(run => run.OpenedChests)
+            .AsNoTracking()
             .Where(run => run.GameSessionId == gameSessionId)
             .OrderByDescending(run => run.StartedAt)
             .FirstOrDefaultAsync(cancellationToken);

@@ -39,6 +39,12 @@ public enum CellType : byte
     /// A stone tomb. Tombs lie side by side, two or three tiles long, and block movement.
     /// </summary>
     Tomb,
+
+    /// <summary>
+    /// The ground under a decoration of an easter-egg room (a landed ship, a campfire...).
+    /// Blocks movement, like a barrel; the client draws the decoration, not furniture.
+    /// </summary>
+    Decoration,
 }
 
 public static class CellTypeExtensions

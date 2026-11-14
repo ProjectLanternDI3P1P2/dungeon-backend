@@ -94,9 +94,60 @@ public sealed class DungeonControllerIntegrationTests(DungeonEndpointFixture fix
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        response.Headers.CacheControl!.MaxAge.Should().BeGreaterThan(TimeSpan.FromDays(1));
+        response.Headers.CacheControl!.NoCache.Should().BeTrue();
+        response.Headers.ETag.Should().NotBeNull();
         second.Rows.Should().Equal(first.Rows);
         second.Elements.Should().Equal(first.Elements);
+    }
+
+    [Fact]
+    public async Task GetMap_ClientHoldsTheSameFloor_Returns304WithoutABody()
+    {
+        // Arrange
+        string seed = await CreateRunAndGetSeedAsync();
+        HttpResponseMessage first = await fixture.HttpClient.GetAsync(
+            $"/api/v1/dungeons/{seed}/map",
+            TestContext.Current.CancellationToken
+        );
+        using HttpRequestMessage again = new(HttpMethod.Get, $"/api/v1/dungeons/{seed}/map");
+        again.Headers.IfNoneMatch.Add(first.Headers.ETag!);
+
+        // Act
+        HttpResponseMessage response = await fixture.HttpClient.SendAsync(
+            again,
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert: the floor did not change, so it is not sent again.
+        response.StatusCode.Should().Be(HttpStatusCode.NotModified);
+        (await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken))
+            .Should()
+            .BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetMap_ClientHoldsAnOlderFloor_ReturnsTheCurrentOne()
+    {
+        // Arrange: an ETag from before a change of the generator or its settings.
+        string seed = await CreateRunAndGetSeedAsync();
+        using HttpRequestMessage request = new(HttpMethod.Get, $"/api/v1/dungeons/{seed}/map");
+        request.Headers.TryAddWithoutValidation("If-None-Match", "W/\"0000\"");
+
+        // Act
+        HttpResponseMessage response = await fixture.HttpClient.SendAsync(
+            request,
+            TestContext.Current.CancellationToken
+        );
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (
+            await response.Content.ReadFromJsonAsync<GetDungeonMapResult>(
+                TestContext.Current.CancellationToken
+            )
+        )!
+            .Rows.Should()
+            .NotBeEmpty();
     }
 
     [Fact]

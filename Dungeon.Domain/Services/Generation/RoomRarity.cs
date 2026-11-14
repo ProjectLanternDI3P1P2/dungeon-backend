@@ -6,6 +6,12 @@ namespace Dungeon.Domain.Services.Generation;
 /// </summary>
 public enum RoomRarity
 {
+    /// <summary>
+    /// Never drawn by weight: an easter-egg room only appears through its own roll, whose
+    /// odds are configured (<see cref="EasterEggs"/>).
+    /// </summary>
+    Legendary = 0,
+
     Rare = 1,
     Uncommon = 3,
     Common = 8,

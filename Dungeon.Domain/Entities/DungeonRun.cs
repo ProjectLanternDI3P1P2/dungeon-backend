@@ -1,6 +1,7 @@
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Exceptions;
 using Dungeon.Domain.Mobs;
+using Dungeon.Domain.Services.Generation;
 using Dungeon.Domain.ValueObjects;
 
 namespace Dungeon.Domain.Entities;
@@ -47,6 +48,12 @@ public sealed class DungeonRun
     /// next floor. Reset on arrival at a new floor.
     /// </summary>
     public bool IsFloorBossDefeated { get; private set; }
+
+    /// <summary>
+    /// Chests that this run has already opened. Their position and content remain deterministic
+    /// in the generated map; this collection is the mutable per-run overlay.
+    /// </summary>
+    public List<OpenedChest> OpenedChests { get; private set; } = [];
 
     public DateTimeOffset StartedAt { get; private set; }
 
@@ -142,6 +149,34 @@ public sealed class DungeonRun
         return target;
     }
 
+    /// <summary>
+    /// Debug only: puts a new mob on a free floor tile of the sandbox (<see cref="SandboxDungeon"/>).
+    /// It counts as an action, but the mobs do not play: they move when the hero does.
+    /// </summary>
+    public void SpawnMob(EnemyKind kind, Position at, GeneratedDungeon dungeon)
+    {
+        DungeonFloor floor = GetCurrentFloor(dungeon);
+
+        if (!dungeon.IsSandbox)
+        {
+            throw new InvalidSpawnException(at, "mobs are only spawned by hand in the sandbox");
+        }
+
+        if (!floor.IsWalkable(at) || floor.GetRoomId(at) is not int roomId)
+        {
+            throw new InvalidSpawnException(at, "the tile is not the floor of a room");
+        }
+
+        if (at == HeroPosition || _mobs.Any(mob => mob.IsActive && mob.Position == at))
+        {
+            throw new InvalidSpawnException(at, "the tile is taken");
+        }
+
+        Guid id = Guid.NewGuid();
+        _mobs.Add(RunMob.Spawn(new DungeonElement(id, ElementType.Enemy, at, roomId, kind)));
+        Turn++;
+    }
+
     private Position GoDown(Position gate, DungeonFloor floor, GeneratedDungeon dungeon)
     {
         if (!IsFloorBossDefeated)
@@ -194,6 +229,43 @@ public sealed class DungeonRun
         {
             Status = DungeonRunStatus.Won;
         }
+    }
+
+    /// <summary>
+    /// Opens the chest represented by an <see cref="ElementType.Item"/> on the current floor.
+    /// The party must stand on the chest tile or one of its eight neighbouring tiles. Retrying a
+    /// successfully opened chest is harmless:
+    /// it returns <see langword="false"/> without consuming another turn.
+    /// </summary>
+    public bool OpenChest(Guid elementId, GeneratedDungeon dungeon, DateTimeOffset openedAt)
+    {
+        DungeonFloor floor = GetCurrentFloor(dungeon);
+        DungeonElement? chest = floor.Elements.SingleOrDefault(element =>
+            element.Id == elementId && element.Type == ElementType.Item
+        );
+
+        if (chest is null)
+        {
+            throw new ChestNotFoundException(Id, CurrentFloor, elementId);
+        }
+
+        if (HeroPosition.DistanceTo(chest.Position) > 1)
+        {
+            throw new ChestNotInReachException(Id, CurrentFloor, elementId);
+        }
+
+        if (
+            OpenedChests.Any(opened =>
+                opened.Floor == CurrentFloor && opened.ElementId == elementId
+            )
+        )
+        {
+            return false;
+        }
+
+        OpenedChests.Add(new OpenedChest(Id, CurrentFloor, elementId, openedAt));
+        Turn++;
+        return true;
     }
 
     private DungeonFloor GetCurrentFloor(GeneratedDungeon dungeon)
