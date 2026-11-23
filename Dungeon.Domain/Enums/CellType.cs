@@ -1,6 +1,6 @@
 namespace Dungeon.Domain.Enums;
 
-// Byte-sized: a 40-room floor holds about 20,000 tiles and generated dungeons are cached.
+// Byte-sized: a floor holds about 9,000 tiles and generated dungeons are cached.
 // The numbers are part of the golden-master snapshot: changing them changes every dungeon.
 public enum CellType : byte
 {

@@ -36,7 +36,7 @@ public static class BuilderExtension
         );
 
         // A dungeon floor is ~13 KB of JSON, mostly repeated wall and void characters:
-        // compressed, it weighs ~1.3 KB. Responses hold no secret next to attacker-controlled
+        // compressed, it weighs under 2 KB. Responses hold no secret next to attacker-controlled
         // input, so compressing over HTTPS does not open a BREACH-style leak.
         builder.Services.AddResponseCompression(options =>
         {

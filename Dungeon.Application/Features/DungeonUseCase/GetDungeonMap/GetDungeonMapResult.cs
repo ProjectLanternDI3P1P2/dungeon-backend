@@ -4,8 +4,8 @@ namespace Dungeon.Application.Features.DungeonUseCase.GetDungeonMap;
 
 /// <summary>
 /// A whole floor. Cells are sent as one text row per line (<see cref="Rows"/>, decoded with
-/// <see cref="Legend"/>) and elements as a sparse list: a 40-room floor weighs about 20 KB
-/// instead of about 1 MB as one JSON object per cell, and compresses to a few KB.
+/// <see cref="Legend"/>) and elements as a sparse list: a 10-room floor weighs about 13 KB
+/// instead of hundreds of KB as one JSON object per cell, and compresses to under 2 KB.
 /// </summary>
 public sealed class GetDungeonMapResult
 {
