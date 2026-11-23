@@ -4,11 +4,11 @@
 > démarrent ou font avancer un run (Player, Combat). Référence :
 > [ARCHITECTURE_DES_COMMUNICATIONS_MICROSERVICES.fr.md](ARCHITECTURE_DES_COMMUNICATIONS_MICROSERVICES.fr.md) §3.
 
-Tout le gameplay d'un `DungeonRun` passe par le Hub SignalR `DungeonHub`. Les
-ancien endpoint REST de gameplay (`POST /api/v1/dungeon-runs/{runId}/moves`) est
-**supprimé**. Le REST reste pour ce qui n'est pas du gameplay :
-lecture de la carte par seed (cacheable), lecture d'un run, création en
-développement et `boss-defeats` en attendant le gRPC Combat.
+Tout le déplacement d'un `DungeonRun` passe par le Hub SignalR `DungeonHub`.
+L'ancien endpoint REST (`POST /api/v1/dungeon-runs/{runId}/moves`) est
+**supprimé**. Le REST reste pour le reste : lecture de la carte par seed
+(revalidée par `ETag`), lecture d'un run, création en développement, ouverture
+d'un coffre et `boss-defeats` en attendant le gRPC Combat.
 
 **Périmètre actuel : solo.** Les groupes existent déjà (`dungeon:{DungeonId}`),
 le protocole ne changera donc pas pour le multijoueur. Aucun contrôle de
@@ -83,7 +83,7 @@ replica Dungeon dans le MVP).
 
 | Événement | Payload | Quand |
 | --- | --- | --- |
-| `DungeonStateChanged` | snapshot (§5) | Après chaque changement accepté : `MoveHero` et `boss-defeats` reçu de Combat. Envoyé à tout le groupe, y compris l'émetteur. |
+| `DungeonStateChanged` | snapshot (§5) | Après chaque changement accepté : `MoveHero`, `SpawnMob`, ouverture d'un coffre et `boss-defeats` reçu de Combat. Envoyé à tout le groupe, y compris l'émetteur. |
 
 Le snapshot est complet et autoritatif : le client **remplace** son état, il ne
 le patche pas. Recevoir le même snapshot deux fois (ack + événement) est sans
@@ -130,7 +130,7 @@ Même forme que `GET /api/v1/dungeon-runs/{runId}` :
   "id": "0192f1c4-...",
   "gameSessionId": "0192f1c3-...",
   "seed": "0KX4M2T9QZ7PA",
-  "generatorVersion": 6,
+  "generatorVersion": 7,
   "status": "active",
   "floorCount": 4,
   "currentFloor": 0,
@@ -141,6 +141,7 @@ Même forme que `GET /api/v1/dungeon-runs/{runId}` :
   "elementsHere": [],
   "mobs": [{ "...": "voir DEPLACEMENT_MOBS.fr.md §7" }],
   "killedMobs": [],
+  "openedChestElementIds": [],
   "discoveredRoomIds": [3],
   "visitedTiles": "AAAAAAAg...",
   "startedAt": "2026-10-20T10:00:00+00:00"
@@ -149,7 +150,7 @@ Même forme que `GET /api/v1/dungeon-runs/{runId}` :
 
 `status` : `active`, `won`, `lost`, `abandoned` (les deux derniers pas encore produits). La carte n'est pas dans le snapshot : la charger une
 fois par étage avec `GET /api/v1/dungeons/{seed}/map?floor={currentFloor}`
-(immuable, cacheable). Un `enemy` ou `boss` dans `elementsHere` marque l'endroit
+(cacheable, revalidée par `ETag`). Un `enemy` ou `boss` dans `elementsHere` marque l'endroit
 où Combat prend la main.
 
 ### Exploration (fog of war)
@@ -172,6 +173,7 @@ chaque tuile visitée.
 | --- | --- | --- |
 | Front | `JoinDungeon`, `MoveHero`, écoute `DungeonStateChanged` | SignalR `/hubs/dungeons` |
 | Front | Carte d'un étage | REST `GET /api/v1/dungeons/{seed}/map` |
+| Front | Ouvrir un coffre → `{ run, loot }` | REST `POST /api/v1/dungeon-runs/{runId}/chests/{elementId}/open` |
 | Player | Démarrer le run d'une `GameSession` → `runId` à transmettre au client | gRPC `DungeonRunService/CreateDungeonRun` ([Dungeon.Contracts](../../Dungeon.Contracts/README.md)) |
 | Combat | Victoire sur le boss de l'étage | REST `POST /api/v1/dungeon-runs/{runId}/boss-defeats` (provisoire, sera remplacé par gRPC `ReportCombatResult`). Diffuse `DungeonStateChanged` aux joueurs. |
 

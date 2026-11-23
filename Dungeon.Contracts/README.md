@@ -6,10 +6,10 @@ the Dungeon service.
 ## Installation
 
 Configure the organisation's GitHub Packages NuGet source, then pin a released
-version of the package:
+version of the package (`DungeonRunService` exists since 4.0.0):
 
 ```xml
-<PackageReference Include="Dungeon.Contracts" Version="3.0.0" />
+<PackageReference Include="Dungeon.Contracts" Version="4.0.0" />
 ```
 
 For a C# gRPC consumer, also reference `Grpc.Net.Client` (or
