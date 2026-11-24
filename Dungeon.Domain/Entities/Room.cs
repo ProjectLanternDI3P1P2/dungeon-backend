@@ -8,18 +8,18 @@ public sealed class Room
     public Room(
         int id,
         RoomType type,
-        Position gridCell,
-        RoomBounds interior,
-        Position center,
+        RoomLayout layout,
         int depth,
-        IReadOnlyList<int> connectedRoomIds
+        IReadOnlyList<int> connectedRoomIds,
+        string? easterEgg = null
     )
     {
+        EasterEgg = easterEgg;
         Id = id;
         Type = type;
-        GridCell = gridCell;
-        Interior = interior;
-        Center = center;
+        GridCell = layout.GridCell;
+        Interior = layout.Interior;
+        Center = layout.Center;
         Depth = depth;
         ConnectedRoomIds = connectedRoomIds;
     }
@@ -41,4 +41,7 @@ public sealed class Room
     public int Depth { get; }
 
     public IReadOnlyList<int> ConnectedRoomIds { get; }
+
+    /// <summary>Which easter egg a <see cref="RoomType.Secret"/> room holds; null otherwise.</summary>
+    public string? EasterEgg { get; }
 }

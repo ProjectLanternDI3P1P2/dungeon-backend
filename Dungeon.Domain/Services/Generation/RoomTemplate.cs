@@ -21,11 +21,26 @@ public sealed class RoomTemplate
     public const char TreasureSpot = '$';
     public const char BossSpot = 'B';
 
+    // Easter-egg decorations. Each letter covers the decoration's whole footprint; the
+    // element stands on its first tile in reading order. Portals hang on the north wall:
+    // their spot, on the top row, stays walkable.
+    public const char ShipSpot = 'S';
+    public const char CampfireSpot = 'C';
+    public const char StrawberrySpot = 'F';
+    public const char GrassBlockSpot = 'M';
+    public const char BluePortalSpot = 'P';
+    public const char OrangePortalSpot = 'Q';
+
+    /// <summary>Every decoration letter, in a fixed order: elements are placed in it.</summary>
+    public static IReadOnlyList<char> DecorationSpots { get; } =
+    [ShipSpot, CampfireSpot, StrawberrySpot, GrassBlockSpot, BluePortalSpot, OrangePortalSpot];
+
     public RoomTemplate(
         string name,
         IReadOnlyList<RoomType> roomTypes,
         IReadOnlyList<string> rows,
-        RoomRarity rarity = RoomRarity.Common
+        RoomRarity rarity = RoomRarity.Common,
+        string? easterEgg = null
     )
     {
         ArgumentOutOfRangeException.ThrowIfZero(rows.Count);
@@ -34,6 +49,7 @@ public sealed class RoomTemplate
         RoomTypes = roomTypes;
         Rows = rows;
         Rarity = rarity;
+        EasterEgg = easterEgg;
         Width = rows[0].Length;
         Height = rows.Count;
     }
@@ -47,6 +63,9 @@ public sealed class RoomTemplate
 
     /// <summary>How often the template comes up among those that fit a room.</summary>
     public RoomRarity Rarity { get; }
+
+    /// <summary>The easter egg a <see cref="RoomType.Secret"/> template shows; null otherwise.</summary>
+    public string? EasterEgg { get; }
 
     public int Width { get; }
 
@@ -72,12 +91,33 @@ public sealed class RoomTemplate
             WaterTile => CellType.Water,
             LavaTile => CellType.Lava,
             TombTile => CellType.Tomb,
-            FloorTile or TrapSpot or TreasureSpot or BossSpot => CellType.Floor,
+            ShipSpot or CampfireSpot or StrawberrySpot or GrassBlockSpot => CellType.Decoration,
+            FloorTile
+            or TrapSpot
+            or TreasureSpot
+            or BossSpot
+            or BluePortalSpot
+            or OrangePortalSpot => CellType.Floor,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(tile),
                 tile,
                 "Unknown template tile."
             ),
+        };
+    }
+
+    /// <summary>The decoration a spot letter stands for.</summary>
+    public static DecorationKind DecorationOf(char spot)
+    {
+        return spot switch
+        {
+            ShipSpot => DecorationKind.Ship,
+            CampfireSpot => DecorationKind.Campfire,
+            StrawberrySpot => DecorationKind.Strawberry,
+            GrassBlockSpot => DecorationKind.GrassBlock,
+            BluePortalSpot => DecorationKind.BluePortal,
+            OrangePortalSpot => DecorationKind.OrangePortal,
+            _ => throw new ArgumentOutOfRangeException(nameof(spot), spot, "Not a decoration."),
         };
     }
 }

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using Dungeon.Application.Features.DungeonUseCase.GetDungeonCell;
 using Dungeon.Application.Features.DungeonUseCase.GetDungeonMap;
 using MediatR;
@@ -14,11 +16,15 @@ namespace Dungeon.Presentation.Controllers;
 [Route("api/v1/dungeons")]
 public sealed class DungeonController(IMediator mediator, ILogger logger) : ControllerBase
 {
-    // A known seed always produces the same floor, so the browser and the Gateway may keep it
-    // for good. Error responses are not affected: the header is only set on success.
-    // TODO(tech-debt): cached for a year per seed, not per generator version — put the version
-    // in the URL or an ETag if a seed may ever be served by another version.
-    private const string ImmutableCacheControl = "public, max-age=31536000, immutable";
+    // A seed gives the same floor only as long as the generator, its templates and its
+    // settings stay the same: a new easter-egg room, other odds, and the floor of a seed
+    // changes. So the browser keeps a floor but asks again before each use, sending its
+    // ETag; an unchanged floor costs a 304 without a body, a changed one comes back whole.
+    // The ETag hashes the content itself, so no change can slip past it. Weak, because the
+    // body may be compressed. Error responses are not affected: they carry neither header.
+    private const string RevalidatedCacheControl = "public, no-cache";
+
+    private static readonly JsonSerializerOptions ETagJson = new(JsonSerializerDefaults.Web);
 
     [HttpGet("{seed}/map")]
     public async Task<IActionResult> GetMap(
@@ -31,8 +37,7 @@ public sealed class DungeonController(IMediator mediator, ILogger logger) : Cont
 
         var map = await mediator.Send(new GetDungeonMapQuery(seed, floor), cancellationToken);
 
-        Response.Headers.CacheControl = ImmutableCacheControl;
-        return Ok(map);
+        return Revalidated(map);
     }
 
     [HttpGet("{seed}/cell")]
@@ -57,7 +62,26 @@ public sealed class DungeonController(IMediator mediator, ILogger logger) : Cont
             cancellationToken
         );
 
-        Response.Headers.CacheControl = ImmutableCacheControl;
-        return Ok(cell);
+        return Revalidated(cell);
+    }
+
+    /// <summary>The body with its ETag, or 304 when the client already holds this very one.</summary>
+    private IActionResult Revalidated<T>(T body)
+    {
+        string etag = ETagOf(body);
+        Response.Headers.CacheControl = RevalidatedCacheControl;
+        Response.Headers.ETag = etag;
+
+        bool known = Request
+            .Headers.IfNoneMatch.SelectMany(value => (value ?? string.Empty).Split(','))
+            .Select(tag => tag.Trim())
+            .Any(tag => tag == etag || tag == "*");
+        return known ? StatusCode(StatusCodes.Status304NotModified) : Ok(body);
+    }
+
+    internal static string ETagOf<T>(T body)
+    {
+        byte[] hash = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(body, ETagJson));
+        return $"W/\"{Convert.ToHexString(hash, 0, 16)}\"";
     }
 }

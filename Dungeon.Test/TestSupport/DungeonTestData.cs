@@ -196,8 +196,7 @@ public static class DungeonTestData
         DungeonFloor floor = new(
             index: 0,
             isFinalFloor: true,
-            width: cells.Length,
-            height: 1,
+            new GridSize(cells.Length, 1),
             cells,
             rooms: [],
             elements: [],
@@ -256,7 +255,9 @@ public static class DungeonTestData
                 {
                     elements.Add(
                         new DungeonElement(
-                            elements.Count,
+                            Guid.Parse(
+                                $"00000000-0000-0000-0000-{elements.Count + 1:000000000000}"
+                            ),
                             ElementType.Enemy,
                             position,
                             RoomOf(position),
@@ -268,7 +269,9 @@ public static class DungeonTestData
                 {
                     elements.Add(
                         new DungeonElement(
-                            elements.Count,
+                            Guid.Parse(
+                                $"00000000-0000-0000-0000-{elements.Count + 1:000000000000}"
+                            ),
                             ElementType.Trap,
                             position,
                             RoomOf(position)
@@ -289,9 +292,11 @@ public static class DungeonTestData
                     new Room(
                         id,
                         id == 0 ? RoomType.Start : RoomType.Combat,
-                        new Position(id, 0),
-                        bounds,
-                        new Position(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2),
+                        new RoomLayout(
+                            new Position(id, 0),
+                            bounds,
+                            new Position(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2)
+                        ),
                         id,
                         []
                     )
@@ -301,8 +306,7 @@ public static class DungeonTestData
         DungeonFloor floor = new(
             index: 0,
             isFinalFloor: true,
-            width,
-            height,
+            new GridSize(width, height),
             cells,
             floorRooms,
             elements,

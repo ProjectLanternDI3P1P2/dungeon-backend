@@ -18,4 +18,10 @@ public enum RandomStream : uint
 
     /// <summary>The random steps of the mobs during the run, one generator per mob and turn.</summary>
     MobTurns = 6,
+
+    /// <summary>Stable GUIDs assigned to generated elements.</summary>
+    ElementIds = 7,
+
+    /// <summary>Whether a floor hides an easter-egg room, and which empty room it is.</summary>
+    EasterEggs = 8,
 }

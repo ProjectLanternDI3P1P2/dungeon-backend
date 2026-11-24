@@ -13,7 +13,7 @@ public sealed class RunMob
     private RunMob() { }
 
     /// <summary>The id of the enemy element it spawned from: stable for the seed and floor.</summary>
-    public int ElementId { get; private set; }
+    public Guid ElementId { get; private set; }
 
     public EnemyKind Kind { get; private set; }
 
