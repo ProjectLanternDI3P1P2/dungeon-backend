@@ -41,3 +41,6 @@ jobs:
           DUNGEON_TEST_DATABASE_CONNECTION: Host=localhost;Port=5432;Database=dungeon_test;Username=dungeon
           NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }};ValidAuthenticationTypes=Basic
         run: dotnet test --solution Dungeon.Presentation.slnx
+
+      - name: Verify production migration command against disposable PostgreSQL
+        run: bash .github/scripts/test-migration-command.sh
