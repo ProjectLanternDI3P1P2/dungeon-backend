@@ -8,4 +8,10 @@ namespace Dungeon.Application.Features.DungeonRunUseCase.CreateDungeonRun;
 /// </summary>
 /// <param name="RunId">Chosen by the caller, so that a retried request is idempotent (ADR-0025).</param>
 /// <param name="Seed">Null for a new dungeon; an existing seed to replay a shared adventure.</param>
-public record CreateDungeonRunCommand(Guid RunId, Guid GameSessionId, string? Seed) : ICommand;
+/// <param name="HeroIds">The heroes of the party, owned by Player; null or empty without Player.</param>
+public record CreateDungeonRunCommand(
+    Guid RunId,
+    Guid GameSessionId,
+    string? Seed,
+    IReadOnlyList<Guid>? HeroIds = null
+) : ICommand;

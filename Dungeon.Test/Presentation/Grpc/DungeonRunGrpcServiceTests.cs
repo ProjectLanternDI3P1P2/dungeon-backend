@@ -56,7 +56,12 @@ public class DungeonRunGrpcServiceTests
         response.Seed.Should().Be("0KX4M2T9QZ7PA");
         _mediatorMock.Verify(mediator =>
             mediator.Send(
-                new CreateDungeonRunCommand(CommandId, SessionId, null),
+                It.Is<CreateDungeonRunCommand>(command =>
+                    command.RunId == CommandId
+                    && command.GameSessionId == SessionId
+                    && command.Seed == null
+                    && command.HeroIds!.SequenceEqual(new[] { HeroId })
+                ),
                 It.IsAny<CancellationToken>()
             )
         );
@@ -84,7 +89,11 @@ public class DungeonRunGrpcServiceTests
         // Assert
         _mediatorMock.Verify(mediator =>
             mediator.Send(
-                new CreateDungeonRunCommand(CommandId, SessionId, "0KX4M2T9QZ7PA"),
+                It.Is<CreateDungeonRunCommand>(command =>
+                    command.RunId == CommandId
+                    && command.GameSessionId == SessionId
+                    && command.Seed == "0KX4M2T9QZ7PA"
+                ),
                 It.IsAny<CancellationToken>()
             )
         );

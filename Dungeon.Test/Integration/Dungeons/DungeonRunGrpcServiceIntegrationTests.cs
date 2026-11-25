@@ -1,11 +1,15 @@
 using System.Net;
 using System.Net.Http.Json;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
+using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunHeroes;
+using Dungeon.Application.Models;
 using Dungeon.Contracts.V1;
+using Dungeon.Test.TestSupport;
 using FluentAssertions;
 using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Dungeon.Test.Integration.Dungeons;
 
@@ -57,6 +61,47 @@ public sealed class DungeonRunGrpcServiceIntegrationTests : IAsyncLifetime
         run!.GameSessionId.Should().Be(Guid.Parse(request.GameSessionId));
         run.Seed.Should().Be(response.Seed);
         run.Status.Should().Be("active");
+    }
+
+    [Fact]
+    public async Task CreateDungeonRun_Party_ExposesEachHeroAppearanceThroughRest()
+    {
+        // Arrange: one hero customized in Player's editor, one Player cannot describe.
+        Guid customized = Guid.NewGuid();
+        Guid unknown = Guid.NewGuid();
+        HeroAppearance chosen = new(5, "dap1", 9);
+        factory!.Services.GetRequiredService<FakeHeroAppearanceClient>().Choose(customized, chosen);
+        CreateDungeonRunRequest request = new()
+        {
+            CommandId = Guid.NewGuid().ToString(),
+            GameSessionId = Guid.NewGuid().ToString(),
+            Participants =
+            {
+                new DungeonRunParticipant { HeroId = customized.ToString() },
+                new DungeonRunParticipant { HeroId = unknown.ToString() },
+            },
+        };
+
+        // Act
+        CreateDungeonRunResponse response = await Client.CreateDungeonRunAsync(
+            request,
+            cancellationToken: TestContext.Current.CancellationToken
+        );
+        var heroes = await factory
+            .CreateClient()
+            .GetFromJsonAsync<GetDungeonRunHeroesResult>(
+                $"/api/v1/dungeon-runs/{response.RunId}/heroes",
+                TestContext.Current.CancellationToken
+            );
+
+        // Assert
+        heroes!.RunId.Should().Be(Guid.Parse(response.RunId));
+        heroes
+            .Heroes.Should()
+            .Equal(
+                new RunHeroResult(customized, chosen, false),
+                new RunHeroResult(unknown, HeroAppearance.Default, true)
+            );
     }
 
     [Fact]

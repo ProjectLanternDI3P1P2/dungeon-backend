@@ -14,6 +14,7 @@ namespace Dungeon.Domain.Entities;
 public sealed class DungeonRun
 {
     private readonly List<RunMob> _mobs = [];
+    private List<Guid> _heroIds = [];
     private List<int> _discoveredRoomIds = [];
     private byte[] _visitedTiles = [];
 
@@ -58,6 +59,13 @@ public sealed class DungeonRun
     public DateTimeOffset StartedAt { get; private set; }
 
     /// <summary>
+    /// The heroes of the party, in the order Player listed them. Player owns the heroes: only
+    /// their ids are kept, to ask Player what they look like whenever the run is loaded.
+    /// Empty for a run started without Player.
+    /// </summary>
+    public IReadOnlyList<Guid> HeroIds => _heroIds;
+
+    /// <summary>
     /// The mobs of the current floor, dead ones included, in element order: the order they act
     /// in. Sorted here because the database returns its rows in no particular order.
     /// </summary>
@@ -77,17 +85,20 @@ public sealed class DungeonRun
 
     public DungeonSettings Settings => new(RoomCount, FloorCount);
 
+    /// <param name="heroIds">The heroes of the party, each kept once; none without Player.</param>
     public static DungeonRun Start(
         Guid runId,
         Guid gameSessionId,
         GeneratedDungeon dungeon,
-        DateTimeOffset startedAt
+        DateTimeOffset startedAt,
+        IEnumerable<Guid>? heroIds = null
     )
     {
         Position entrance = dungeon.Floors[0].Entrance;
 
         DungeonRun run = new()
         {
+            _heroIds = [.. (heroIds ?? []).Distinct()],
             Id = runId,
             GameSessionId = gameSessionId,
             Seed = dungeon.Seed,

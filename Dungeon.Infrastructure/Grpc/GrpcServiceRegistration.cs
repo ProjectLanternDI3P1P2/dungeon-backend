@@ -1,9 +1,11 @@
+extern alias PlayerContracts;
 using Dungeon.Contracts.V1;
 using Dungeon.Infrastructure.Grpc.Clients;
 using Dungeon.Infrastructure.Grpc.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using PlayerContracts::Player.Contracts.V1;
 using Reward.Contracts.V1;
 
 namespace Dungeon.Infrastructure.Grpc;
@@ -33,6 +35,9 @@ public static class GrpcServiceRegistration
             .AddSingleton(Options.Create(playerGrpcClientOptions))
             .AddSingleton(Options.Create(rewardGrpcClientOptions))
             .AddGrpcClient<DungeonPlayerService.DungeonPlayerServiceClient>(options =>
+                options.Address = new Uri(playerGrpcClientOptions.Address)
+            )
+            .Services.AddGrpcClient<PlayerHeroService.PlayerHeroServiceClient>(options =>
                 options.Address = new Uri(playerGrpcClientOptions.Address)
             )
             .Services.AddGrpcClient<RewardLootService.RewardLootServiceClient>(options =>

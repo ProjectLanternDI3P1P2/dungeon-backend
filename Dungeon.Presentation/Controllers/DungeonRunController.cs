@@ -2,6 +2,7 @@ using Dungeon.Application.Features.DungeonRunUseCase.CreateDungeonRun;
 using Dungeon.Application.Features.DungeonRunUseCase.DefeatFloorBoss;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunByGameSessionId;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
+using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunHeroes;
 using Dungeon.Application.Features.DungeonRunUseCase.OpenChest;
 using Dungeon.Presentation.DTO;
 using Dungeon.Presentation.Hubs;
@@ -12,7 +13,10 @@ using ILogger = Serilog.ILogger;
 
 namespace Dungeon.Presentation.Controllers;
 
-/// <summary>Run access and chest opening. Moving goes through <see cref="DungeonHub"/>.</summary>
+/// <summary>
+/// Run access, the heroes' appearance and chest opening. Moving goes through
+/// <see cref="DungeonHub"/>.
+/// </summary>
 [ApiController]
 [Route("api/v1/dungeon-runs")]
 public sealed class DungeonRunController(
@@ -38,7 +42,8 @@ public sealed class DungeonRunController(
             new CreateDungeonRunCommand(
                 runId,
                 createDungeonRunDto.GameSessionId,
-                createDungeonRunDto.Seed
+                createDungeonRunDto.Seed,
+                createDungeonRunDto.HeroIds
             ),
             cancellationToken
         );
@@ -60,6 +65,21 @@ public sealed class DungeonRunController(
         var run = await mediator.Send(new GetDungeonRunByIdQuery(runId), cancellationToken);
 
         return Ok(run);
+    }
+
+    /// <summary>
+    /// The heroes of the run and the appearance chosen for each in Player's hero editor,
+    /// read when the client loads the run. A hero Player cannot describe gets the default
+    /// appearance, flagged by <c>isDefaultAppearance</c>, instead of failing the request.
+    /// </summary>
+    [HttpGet("{runId:guid}/heroes")]
+    public async Task<IActionResult> GetHeroes(Guid runId, CancellationToken cancellationToken)
+    {
+        logger.Information("Received request to get the heroes of dungeon run {RunId}.", runId);
+
+        var heroes = await mediator.Send(new GetDungeonRunHeroesQuery(runId), cancellationToken);
+
+        return Ok(heroes);
     }
 
     /// <summary>

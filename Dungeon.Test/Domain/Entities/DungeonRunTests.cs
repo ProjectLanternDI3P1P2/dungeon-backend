@@ -32,6 +32,40 @@ public class DungeonRunTests
         run.Settings.Should().Be(DungeonSettings.Default);
     }
 
+    [Fact]
+    public void Start_WithAParty_KeepsEachHeroOnceInTheOrderGiven()
+    {
+        // Arrange
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+        Guid first = Guid.NewGuid();
+        Guid second = Guid.NewGuid();
+
+        // Act
+        DungeonRun run = DungeonRun.Start(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            dungeon,
+            Now,
+            [first, second, first]
+        );
+
+        // Assert
+        run.HeroIds.Should().Equal(first, second);
+    }
+
+    [Fact]
+    public void Start_WithoutAParty_HasNoHero()
+    {
+        // Arrange
+        GeneratedDungeon dungeon = DungeonTestData.Generate(DungeonTestData.ReferenceSeed);
+
+        // Act
+        DungeonRun run = DungeonRun.Start(Guid.NewGuid(), Guid.NewGuid(), dungeon, Now);
+
+        // Assert
+        run.HeroIds.Should().BeEmpty();
+    }
+
     [Theory]
     [InlineData(CellType.Floor)]
     [InlineData(CellType.Door)]

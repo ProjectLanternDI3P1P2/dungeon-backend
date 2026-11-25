@@ -61,6 +61,23 @@ public class CreateDungeonRunCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_PartyOfHeroes_StoresTheirIdsOnTheRun()
+    {
+        // Arrange: Player lists the heroes it starts the session with.
+        _seedGeneratorMock
+            .Setup(generator => generator.NewSeed())
+            .Returns(DungeonTestData.ReferenceSeed);
+        Guid[] heroIds = [Guid.NewGuid(), Guid.NewGuid()];
+        var command = new CreateDungeonRunCommand(Guid.NewGuid(), Guid.NewGuid(), null, heroIds);
+
+        // Act
+        await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        _storedRun!.HeroIds.Should().Equal(heroIds);
+    }
+
+    [Fact]
     public async Task Handle_DrawnSeedAlreadyUsed_DrawsAnotherOne()
     {
         // Arrange
