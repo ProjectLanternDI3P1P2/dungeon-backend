@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/contracts-v4.0.0...contracts-v5.0.0) (2026-11-25)
+
+
+### Added
+
+* **dungeon:** add server-side chest loot opening ([0d4caaa](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/0d4caaaf84fc89e46a4a66853efccfaac92fa6e6))
+* **dungeon:** integrate Reward chest loot contract ([a29c5b4](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/a29c5b48257aae4497cf51eaae06ab27811e7f79))
+* **dungeon:** use UUIDs for generated elements ([911371e](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/911371e316f6adcb24008a28e7bd27e399bb87cf))
+
 ## [4.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/contracts-v3.0.0...contracts-v4.0.0) (2026-10-20)
 
 
