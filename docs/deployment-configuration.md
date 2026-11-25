@@ -12,6 +12,7 @@ Le Compose de `frontend-game` fournit les valeurs de déploiement.
 | Variable | Adresse Compose |
 | --- | --- |
 | `Grpc__Combat__Address` | `http://combat:8081` |
+| `Grpc__Player__Address` | `http://player:8081` (délai `Grpc__Player__TimeoutSeconds`, 2 s) |
 | `Grpc__Rewards__Address` | `http://reward:8081` |
 
 Chaque dépendance possède `Grpc__<Service>__TimeoutSeconds` (5 secondes par défaut).
