@@ -13,20 +13,20 @@ public static class BuilderExtension
 {
     private const string ConsoleJsonTemplate =
         """
-        { {
-            timestamp: @t,
-            level: level,
-            service: 'dungeon-backend',
-            origin: 'backend',
-            message: @m,
-            properties: Rest(),
-            exception: if @x is not null then {
-                type: TypeOf(@x),
-                message: Inspect(@x).Message,
-                stack: Inspect(@x).StackTrace
-            } else undefined()
-        } }
-        """ + "\n";
+            { {
+                timestamp: @t,
+                level: level,
+                service: 'dungeon-backend',
+                origin: 'backend',
+                message: @m,
+                properties: Rest(),
+                exception: if @x is not null then {
+                    type: TypeOf(@x),
+                    message: Inspect(@x).Message,
+                    stack: Inspect(@x).StackTrace
+                } else undefined()
+            } }
+            """ + "\n";
 
     /// <summary>
     /// Lets a frontend dev server on another port call the service directly. Browsers
