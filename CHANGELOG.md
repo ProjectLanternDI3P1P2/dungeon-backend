@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.4.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.3.1...v2.4.0) (2026-11-25)
+
+
+### Added
+
+* **dungeon:** add server-side chest loot opening ([0d4caaa](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/0d4caaaf84fc89e46a4a66853efccfaac92fa6e6))
+* **dungeon:** debug sandbox to spawn mobs by hand ([1fe6140](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/1fe61406c27f799b221cfea089822642b0605fee))
+* **dungeon:** enable the sandbox seed in development only ([ca07be8](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/ca07be874b421f0ee4ea5fdf2376a77d1fd6a655))
+* **dungeon:** generate a debug sandbox behind a reserved seed ([1dca010](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/1dca01044c4dc631eb0500b1a394d5b502e97505))
+* **dungeon:** spawn mobs by hand in the sandbox ([99f9e90](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/99f9e9074617e4bb31c80b8096d6cd312d3e14b6))
+* **dungeon:** use UUIDs for generated elements ([911371e](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/911371e316f6adcb24008a28e7bd27e399bb87cf))
+* **hub:** add the SpawnMob debug command ([3c6ee27](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/3c6ee27a01a9bc046091800c12aa1531b5c9652a))
+* **hub:** refuse SpawnMob outside development ([4b57d05](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/4b57d0538a9292804f8d4c22c2d6842da8152287))
+* **migrations:** add migration-only command for GitOps jobs ([fba4f31](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/fba4f31f72abef3c7ab136f549465106197c3c5f))
+
+
+### Fixed
+
+* **docker:** pack Reward contract for local Dungeon build ([153b092](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/153b09269bd7916499add494e0e836b3c14870fe))
+* **docker:** pack Reward contract for local Dungeon build ([dafba9f](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/dafba9fbfb6522b9e3303aeae6cde5673d1ec264))
+* **dungeon:** apply UUID migration in integration tests ([cad52d3](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/cad52d35756d03cb0659668931f40b2b6751d5a8))
+* **dungeon:** refuse unparsable directions and kinds in the handlers ([2bf89d9](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/2bf89d9b9467a13a51adb96e3937ab5483e838ce))
+* **dungeon:** revalidate cached maps with an ETag ([6d3798a](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/6d3798a3def7bc3ba725416752696293ede9f335))
+* **dungeon:** revalidate cached maps with an ETag ([138ddf6](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/138ddf677c2abb4b64d4540bdfac4b2468a4bc48))
+* **dungeon:** use guid ids for sandbox mobs ([a8b794c](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/a8b794c51b2e19be486b4ac6c066d58061117fe4))
+* **test:** fix the SonarQube warnings ([2763a90](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/2763a908213360c7ebe3064c17d7ab8aad990faf))
+
+
+### Changed
+
+* **dungeon:** simplify the validator loop and the gRPC local type ([74e9ea6](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/74e9ea6ea2ae19ca8d4634179482d6d7d4f8c0a4))
+* **dungeon:** split the floor builder and group the room and floor constructors ([b18ffd7](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/b18ffd7533d18f647ef51fc1d3297bb41463e165))
+* **dungeon:** split the mob turn into steps ([44d958b](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/44d958bc3a2c04e6415337075abe7b2a795ec6d4))
+
 ## [2.3.1](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.3.0...v2.3.1) (2026-10-22)
 
 
