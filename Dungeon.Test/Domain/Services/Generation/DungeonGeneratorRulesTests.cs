@@ -10,6 +10,8 @@ namespace Dungeon.Test.Domain.Services.Generation;
 /// <summary>US-DUNGEON-01 business rules, checked on fifty different seeds.</summary>
 public class DungeonGeneratorRulesTests
 {
+    private static readonly (int X, int Y)[] Direction4 = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
     [Theory]
     [MemberData(nameof(DungeonTestData.FiftySeeds), MemberType = typeof(DungeonTestData))]
     public void Generate_AnySeed_CreatesFortyRoomsOnFourFloorsOfTen(ulong seedValue)
@@ -34,7 +36,23 @@ public class DungeonGeneratorRulesTests
 
             // Assert
             floor.Rooms.Should().OnlyContain(room => reachable.Contains(room.Center));
-            floor.Elements.Should().OnlyContain(element => reachable.Contains(element.Position));
+            // A decoration that blocks the way (a landed ship) is reached from a tile beside it.
+            floor
+                .Elements.Should()
+                .OnlyContain(element =>
+                    reachable.Contains(element.Position)
+                    || (
+                        element.Type == ElementType.Decoration
+                        && Direction4.Any(step =>
+                            reachable.Contains(
+                                new Position(
+                                    element.Position.X + step.X,
+                                    element.Position.Y + step.Y
+                                )
+                            )
+                        )
+                    )
+                );
             reachable.Count.Should().Be(CountWalkableTiles(floor));
         }
     }
@@ -151,7 +169,10 @@ public class DungeonGeneratorRulesTests
             counts[RoomType.Start].Should().Be(1);
             counts[RoomType.Boss].Should().Be(1);
             counts[RoomType.Treasure].Should().Be(1);
-            counts[RoomType.Empty].Should().Be(1);
+            // An easter-egg room, once in a long while, takes the place of the empty room.
+            (counts.GetValueOrDefault(RoomType.Empty) + counts.GetValueOrDefault(RoomType.Secret))
+                .Should()
+                .Be(1);
             counts[RoomType.Combat].Should().Be(6);
             floor.Rooms[0].Type.Should().Be(RoomType.Start);
         }
@@ -168,7 +189,13 @@ public class DungeonGeneratorRulesTests
             floor
                 .Elements.Should()
                 .OnlyContain(element =>
-                    floor.GetCell(element.Position) == CellType.Floor
+                    (
+                        floor.GetCell(element.Position) == CellType.Floor
+                        || (
+                            element.Type == ElementType.Decoration
+                            && floor.GetCell(element.Position) == CellType.Decoration
+                        )
+                    )
                     && floor.GetRoomId(element.Position) == element.RoomId
                 );
             floor
@@ -371,8 +398,7 @@ public class DungeonGeneratorRulesTests
         DungeonFloor floor = new(
             valid.Index,
             valid.IsFinalFloor,
-            valid.Width,
-            valid.Height,
+            new GridSize(valid.Width, valid.Height),
             [
                 .. from y in Enumerable.Range(0, valid.Height)
                 from x in Enumerable.Range(0, valid.Width)
@@ -387,7 +413,48 @@ public class DungeonGeneratorRulesTests
         IReadOnlyList<string> violations = DungeonValidator.ValidateFloor(floor, valid.Rooms.Count);
 
         // Assert
-        violations.Should().Contain("element 0: an enemy needs a kind, other elements have none");
+        violations
+            .Should()
+            .Contain($"element {elements[0].Id}: an enemy needs a kind, other elements have none");
+    }
+
+    [Fact]
+    public void ValidateFloor_ConnectionThatTheOtherRoomDoesNotShare_IsReportedAsOneWay()
+    {
+        // Arrange: a valid generated floor whose start room gains a door the other room lacks.
+        DungeonFloor valid = DungeonTestData.Generate(DungeonTestData.ReferenceSeed).Floors[0];
+        Room stranger = valid.Rooms.First(room =>
+            room.Id != 0 && !room.ConnectedRoomIds.Contains(0)
+        );
+        Room[] rooms = [.. valid.Rooms];
+        Room start = rooms[0];
+        rooms[0] = new Room(
+            start.Id,
+            start.Type,
+            new RoomLayout(start.GridCell, start.Interior, start.Center),
+            start.Depth,
+            [.. start.ConnectedRoomIds, stranger.Id]
+        );
+        DungeonFloor floor = new(
+            valid.Index,
+            valid.IsFinalFloor,
+            new GridSize(valid.Width, valid.Height),
+            [
+                .. from y in Enumerable.Range(0, valid.Height)
+                from x in Enumerable.Range(0, valid.Width)
+                select valid.GetCell(new Position(x, y)),
+            ],
+            rooms,
+            valid.Elements,
+            valid.Entrance
+        );
+
+        // Act
+        IReadOnlyList<string> violations = DungeonValidator.ValidateFloor(floor, valid.Rooms.Count);
+
+        // Assert: that connection, and only that one.
+        violations.Should().ContainSingle(violation => violation.Contains("one-way"));
+        violations.Should().Contain($"connection 0-{stranger.Id} is one-way");
     }
 
     [Fact]

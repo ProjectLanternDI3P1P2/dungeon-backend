@@ -9,6 +9,8 @@ public class DungeonDbContext(DbContextOptions<DungeonDbContext> options) : DbCo
 
     public virtual DbSet<DungeonRun> DungeonRuns { get; set; }
 
+    public virtual DbSet<OpenedChest> OpenedChests { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Applique toutes les configurations d'entités automatiquement

@@ -9,7 +9,18 @@ namespace Dungeon.Domain.Services.Generation;
 /// Builds a dungeon from a seed. The output depends only on (seed, settings, version):
 /// no clock, no <see cref="System.Random"/>, no hash-ordered collection, no floating point.
 /// </summary>
-public sealed class DungeonGenerator
+/// <param name="sandboxEnabled">
+/// In development only: the seed of <see cref="SandboxDungeon"/> gives the debug sandbox.
+/// Otherwise it is a seed like any other.
+/// </param>
+/// <param name="easterEggOneIn">
+/// The legendary odds: one floor in this many hides an easter-egg room; 0 turns them off.
+/// Changing it changes which seeds hold one (<see cref="EasterEggs"/>).
+/// </param>
+public sealed class DungeonGenerator(
+    bool sandboxEnabled = false,
+    int easterEggOneIn = EasterEggs.DefaultOneIn
+)
 {
     /// <summary>
     /// Bump this whenever a change alters the output for an existing seed, and keep the old
@@ -25,8 +36,9 @@ public sealed class DungeonGenerator
     /// its own stream.
     /// Version 6: no loot in combat rooms, Reward decides what a fight drops; the boss stands
     /// alone in its room; the generator places the mobs itself, away from doors and walls.
+    /// Version 7: generated element identifiers are deterministic GUIDs instead of indexes.
     /// </remarks>
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     public GeneratedDungeon Generate(Seed seed, DungeonSettings settings)
     {
@@ -42,6 +54,11 @@ public sealed class DungeonGenerator
         if (generatorVersion != CurrentVersion)
         {
             throw new UnsupportedGeneratorVersionException(generatorVersion, CurrentVersion);
+        }
+
+        if (sandboxEnabled && seed == SandboxDungeon.Seed)
+        {
+            return SandboxDungeon.Build(settings, CurrentVersion);
         }
 
         List<DungeonFloor> floors = new(settings.FloorCount);
@@ -63,7 +80,7 @@ public sealed class DungeonGenerator
         return dungeon;
     }
 
-    private static DungeonFloor GenerateFloor(Seed seed, DungeonSettings settings, int floorIndex)
+    private DungeonFloor GenerateFloor(Seed seed, DungeonSettings settings, int floorIndex)
     {
         bool isFinalFloor = floorIndex == settings.FloorCount - 1;
 
@@ -73,6 +90,6 @@ public sealed class DungeonGenerator
             isFinalFloor
         );
 
-        return FloorBuilder.Build(seed, floorIndex, isFinalFloor, rooms);
+        return FloorBuilder.Build(seed, floorIndex, isFinalFloor, rooms, easterEggOneIn);
     }
 }

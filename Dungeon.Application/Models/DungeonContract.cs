@@ -9,9 +9,11 @@ public sealed record PositionResult(int X, int Y)
     public static PositionResult From(Position position) => new(position.X, position.Y);
 }
 
-/// <param name="Kind">How an enemy silhouette moves; null for any other element.</param>
+/// <param name="Kind">
+/// How an enemy silhouette moves, or what a decoration shows; null for any other element.
+/// </param>
 public sealed record DungeonElementResult(
-    int Id,
+    Guid Id,
     string Type,
     int X,
     int Y,
@@ -26,14 +28,25 @@ public sealed record DungeonElementResult(
             element.Position.X,
             element.Position.Y,
             element.RoomId,
-            element.Kind is { } kind ? DungeonContract.Name(kind) : null
+            KindOf(element)
         );
+
+    /// <summary>What an enemy is, or what a decoration shows; null for any other element.</summary>
+    private static string? KindOf(DungeonElement element)
+    {
+        if (element.Kind is { } kind)
+        {
+            return DungeonContract.Name(kind);
+        }
+
+        return element.Decoration is { } decoration ? DungeonContract.Name(decoration) : null;
+    }
 }
 
 /// <summary>A living mob of the current floor, where it stands this turn.</summary>
 /// <param name="NextTeleport">Where a mage will land on its next action; null otherwise.</param>
 public sealed record MobResult(
-    int Id,
+    Guid Id,
     string Kind,
     int X,
     int Y,
@@ -74,6 +87,7 @@ public static class DungeonContract
             CellType.Water => '~',
             CellType.Lava => '^',
             CellType.Tomb => 'T',
+            CellType.Decoration => '*',
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 
@@ -92,6 +106,7 @@ public static class DungeonContract
             CellType.Water => "water",
             CellType.Lava => "lava",
             CellType.Tomb => "tomb",
+            CellType.Decoration => "decoration",
             _ => throw new ArgumentOutOfRangeException(nameof(cellType), cellType, null),
         };
 
@@ -102,6 +117,7 @@ public static class DungeonContract
             ElementType.Boss => "boss",
             ElementType.Item => "item",
             ElementType.Trap => "trap",
+            ElementType.Decoration => "decoration",
             _ => throw new ArgumentOutOfRangeException(nameof(elementType), elementType, null),
         };
 
@@ -123,7 +139,20 @@ public static class DungeonContract
             RoomType.Treasure => "treasure",
             RoomType.Empty => "empty",
             RoomType.Boss => "boss",
+            RoomType.Secret => "secret",
             _ => throw new ArgumentOutOfRangeException(nameof(roomType), roomType, null),
+        };
+
+    public static string Name(DecorationKind decoration) =>
+        decoration switch
+        {
+            DecorationKind.Ship => "ship",
+            DecorationKind.Campfire => "campfire",
+            DecorationKind.Strawberry => "strawberry",
+            DecorationKind.GrassBlock => "grassBlock",
+            DecorationKind.BluePortal => "bluePortal",
+            DecorationKind.OrangePortal => "orangePortal",
+            _ => throw new ArgumentOutOfRangeException(nameof(decoration), decoration, null),
         };
 
     public static string Name(DungeonRunStatus status) =>
@@ -149,6 +178,21 @@ public static class DungeonContract
             "east" => (true, Direction.East),
             "south" => (true, Direction.South),
             "west" => (true, Direction.West),
+            _ => (false, default),
+        };
+
+        return parsed;
+    }
+
+    /// <summary>Parses a mob kind sent by a client: zombie, mage, goblin or bat, any case.</summary>
+    public static bool TryParseEnemyKind(string? value, out EnemyKind kind)
+    {
+        (bool parsed, kind) = value?.ToLowerInvariant() switch
+        {
+            "zombie" => (true, EnemyKind.Zombie),
+            "mage" => (true, EnemyKind.Mage),
+            "goblin" => (true, EnemyKind.Goblin),
+            "bat" => (true, EnemyKind.Bat),
             _ => (false, default),
         };
 

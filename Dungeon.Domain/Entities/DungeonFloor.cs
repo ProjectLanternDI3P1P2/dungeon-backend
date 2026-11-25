@@ -15,20 +15,20 @@ public sealed class DungeonFloor
     public DungeonFloor(
         int index,
         bool isFinalFloor,
-        int width,
-        int height,
+        GridSize size,
         CellType[] cells,
         IReadOnlyList<Room> rooms,
         IReadOnlyList<DungeonElement> elements,
         Position entrance
     )
     {
-        ArgumentOutOfRangeException.ThrowIfNotEqual(cells.Length, width * height);
+        ArgumentOutOfRangeException.ThrowIfNotEqual(cells.Length, size.Area);
 
+        int width = size.Width;
         Index = index;
         IsFinalFloor = isFinalFloor;
         Width = width;
-        Height = height;
+        Height = size.Height;
         _cells = cells;
         Rooms = rooms;
         Elements = elements;

@@ -21,7 +21,8 @@ public static class InfrastructureServiceRegistration
 {
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services,
-        IConfiguration configuration
+        IConfiguration configuration,
+        bool isDevelopment = false
     )
     {
         DatabaseOptions databaseOptions =
@@ -34,14 +35,15 @@ public static class InfrastructureServiceRegistration
             .AddTransient(typeof(IPipelineBehavior<,>), typeof(CommandTransactionBehavior<,>))
             .AddEfConnection()
             .AddRepositories()
-            .AddDungeonGeneration(configuration)
+            .AddDungeonGeneration(configuration, isDevelopment)
             .AddGrpcConfiguration(configuration)
             .AddMessaging(configuration);
     }
 
     private static IServiceCollection AddDungeonGeneration(
         this IServiceCollection services,
-        IConfiguration configuration
+        IConfiguration configuration,
+        bool isDevelopment
     )
     {
         DungeonGenerationOptions options =
@@ -53,6 +55,7 @@ public static class InfrastructureServiceRegistration
         // Built here so that an impossible configuration (0 floors, 3 rooms...) stops the
         // service at startup instead of failing on the first exploration.
         DungeonSettings settings = new(options.RoomCount, options.FloorCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(options.EasterEggOneIn);
 
         // TODO(tech-debt): the mob rules are read at every turn, not stored in the run — snapshot
         // them per run if a balance change must not touch the runs in progress.
@@ -64,7 +67,13 @@ public static class InfrastructureServiceRegistration
             .AddSingleton(Options.Create(options))
             .AddSingleton(settings)
             .AddSingleton(mobRules)
-            .AddSingleton<DungeonGenerator>()
+            // The debug sandbox seed only means something in development.
+            .AddSingleton(
+                new DungeonGenerator(
+                    sandboxEnabled: isDevelopment,
+                    easterEggOneIn: options.EasterEggOneIn
+                )
+            )
             .AddSingleton<IDungeonProvider, CachedDungeonProvider>()
             .AddSingleton<ISeedGenerator, CryptoSeedGenerator>();
     }

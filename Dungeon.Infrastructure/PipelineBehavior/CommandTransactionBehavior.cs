@@ -17,7 +17,7 @@ public sealed class CommandTransactionBehavior<TRequest, TResponse>(DungeonDbCon
     {
         ArgumentNullException.ThrowIfNull(next);
 
-        if (request is not ICommand)
+        if (!IsCommand(request))
         {
             return await next(cancellationToken);
         }
@@ -37,4 +37,13 @@ public sealed class CommandTransactionBehavior<TRequest, TResponse>(DungeonDbCon
         await transaction.CommitAsync(cancellationToken);
         return transactionalResponse;
     }
+
+    private static bool IsCommand(TRequest request) =>
+        request is ICommand
+        || request
+            .GetType()
+            .GetInterfaces()
+            .Any(type =>
+                type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ICommand<>)
+            );
 }

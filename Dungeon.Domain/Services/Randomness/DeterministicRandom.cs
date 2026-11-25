@@ -44,15 +44,26 @@ public sealed class DeterministicRandom
     /// A generator for one mob on one turn of the run: replaying the same moves on the same
     /// seed gives the same mobs, without storing any random state in the run.
     /// </summary>
-    public static DeterministicRandom ForMobTurn(Seed seed, int floorIndex, int turn, int mobId)
+    public static DeterministicRandom ForMobTurn(Seed seed, int floorIndex, int turn, Guid mobId)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(floorIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(turn);
-        ArgumentOutOfRangeException.ThrowIfNegative(mobId);
-
         ulong streamKey = SplitMix64.Mix(((ulong)RandomStream.MobTurns << 32) | (uint)floorIndex);
-        ulong turnKey = SplitMix64.Mix(((ulong)(uint)turn << 32) | (uint)mobId);
+        byte[] bytes = mobId.ToByteArray();
+        ulong mobKey = BitConverter.ToUInt64(bytes, 0) ^ BitConverter.ToUInt64(bytes, 8);
+        ulong turnKey = SplitMix64.Mix(((ulong)(uint)turn << 32) ^ mobKey);
         return new DeterministicRandom(seed.Value ^ streamKey ^ turnKey);
+    }
+
+    /// <summary>Returns a deterministic RFC 9562 version-8 GUID from this stream.</summary>
+    public Guid NextGuid()
+    {
+        byte[] bytes = new byte[16];
+        BitConverter.GetBytes(NextUInt64()).CopyTo(bytes, 0);
+        BitConverter.GetBytes(NextUInt64()).CopyTo(bytes, 8);
+        bytes[7] = (byte)((bytes[7] & 0x0F) | 0x80);
+        bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
+        return new Guid(bytes);
     }
 
     public ulong NextUInt64()

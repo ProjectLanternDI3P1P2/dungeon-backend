@@ -7,6 +7,7 @@ using Dungeon.Domain.Repositories;
 using Dungeon.Domain.ValueObjects;
 using Dungeon.Test.TestSupport;
 using FluentAssertions;
+using FluentValidation;
 using Moq;
 
 namespace Dungeon.Test.Features.DungeonRunUseCase.MoveHero;
@@ -112,6 +113,35 @@ public class MoveHeroCommandHandlerTests
         // Assert
         await act.Should().ThrowAsync<InvalidMoveException>();
         _run.HeroPosition.Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("up")]
+    [InlineData("northeast")]
+    public async Task Handle_UnknownDirection_IsRefusedAsInvalidAndLeavesTheHeroInPlace(
+        string direction
+    )
+    {
+        // Arrange: a command that skipped the validator. The default of a failed parse is
+        // north: the hero must not go there.
+        Position before = _run.HeroPosition;
+        int turn = _run.Turn;
+
+        // Act
+        Func<Task> act = async () =>
+            await _handler.Handle(
+                new MoveHeroCommand(_run.Id, direction),
+                TestContext.Current.CancellationToken
+            );
+
+        // Assert: the same refusal as the pipeline, answered 422.
+        ValidationException refusal = (await act.Should().ThrowAsync<ValidationException>()).Which;
+        refusal.Errors.Should().ContainSingle();
+        refusal.Errors.Single().PropertyName.Should().Be(nameof(MoveHeroCommand.Direction));
+        refusal.Errors.Single().ErrorMessage.Should().Be(MoveHeroValidator.DirectionMessage);
+        _run.HeroPosition.Should().Be(before);
+        _run.Turn.Should().Be(turn);
     }
 
     [Fact]
