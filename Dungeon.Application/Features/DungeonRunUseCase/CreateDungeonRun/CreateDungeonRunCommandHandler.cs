@@ -62,7 +62,13 @@ public sealed class CreateDungeonRunCommandHandler(
         GeneratedDungeon dungeon = dungeonProvider.Get(seed, settings, generatorVersion);
 
         await dungeonRunRepository.AddAsync(
-            DungeonRun.Start(request.RunId, request.GameSessionId, dungeon, clock.UtcNow),
+            DungeonRun.Start(
+                request.RunId,
+                request.GameSessionId,
+                dungeon,
+                clock.UtcNow,
+                request.HeroIds
+            ),
             cancellationToken
         );
     }

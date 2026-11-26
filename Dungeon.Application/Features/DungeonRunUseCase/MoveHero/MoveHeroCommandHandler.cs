@@ -4,6 +4,7 @@ using Dungeon.Domain.Entities;
 using Dungeon.Domain.Enums;
 using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Repositories;
+using Dungeon.Domain.ValueObjects;
 using FluentValidation;
 using FluentValidation.Results;
 using MediatR;
@@ -13,7 +14,8 @@ namespace Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
 public sealed class MoveHeroCommandHandler(
     IDungeonRunRepository dungeonRunRepository,
     IDungeonProvider dungeonProvider,
-    MobRules mobRules
+    MobRules mobRules,
+    EncounterRules encounterRules
 ) : IRequestHandler<MoveHeroCommand>
 {
     public async Task Handle(MoveHeroCommand request, CancellationToken cancellationToken)
@@ -38,6 +40,7 @@ public sealed class MoveHeroCommandHandler(
         // The walkability rule lives in the domain: walls, obstacles, the void and anything
         // outside the floor raise InvalidMoveException (409) and leave the run untouched.
         // Then the mobs of the floor take their turn.
-        run.MoveHero(direction, dungeonProvider.Get(run), mobRules);
+        // In Combat mode a contact opens an encounter instead (started in Combat after commit).
+        run.MoveHero(direction, dungeonProvider.Get(run), mobRules, encounterRules);
     }
 }

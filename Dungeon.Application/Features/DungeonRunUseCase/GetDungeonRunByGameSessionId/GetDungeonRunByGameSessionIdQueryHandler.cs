@@ -2,13 +2,15 @@ using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Dungeon.Application.Ports;
 using Dungeon.Domain.Entities;
 using Dungeon.Domain.Repositories;
+using Dungeon.Domain.ValueObjects;
 using MediatR;
 
 namespace Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunByGameSessionId;
 
 public sealed class GetDungeonRunByGameSessionIdQueryHandler(
     IDungeonRunRepository dungeonRunRepository,
-    IDungeonProvider dungeonProvider
+    IDungeonProvider dungeonProvider,
+    EncounterRules? encounterRules = null
 ) : IRequestHandler<GetDungeonRunByGameSessionIdQuery, GetDungeonRunByIdResult>
 {
     public async Task<GetDungeonRunByIdResult> Handle(
@@ -25,6 +27,6 @@ public sealed class GetDungeonRunByGameSessionIdQueryHandler(
                 $"Dungeon run not found for GameSessionId '{request.GameSessionId}'."
             );
 
-        return GetDungeonRunByIdResult.From(run, dungeonProvider.Get(run));
+        return GetDungeonRunByIdResult.From(run, dungeonProvider.Get(run), encounterRules);
     }
 }

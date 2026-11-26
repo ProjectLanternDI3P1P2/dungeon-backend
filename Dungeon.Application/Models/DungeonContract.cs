@@ -45,13 +45,15 @@ public sealed record DungeonElementResult(
 
 /// <summary>A living mob of the current floor, where it stands this turn.</summary>
 /// <param name="NextTeleport">Where a mage will land on its next action; null otherwise.</param>
+/// <param name="InCombat">Engaged in the fight in progress: it does not play until it is settled.</param>
 public sealed record MobResult(
     Guid Id,
     string Kind,
     int X,
     int Y,
     bool Aggro,
-    PositionResult? NextTeleport
+    PositionResult? NextTeleport,
+    bool InCombat = false
 )
 {
     public static MobResult From(RunMob mob) =>
@@ -61,8 +63,42 @@ public sealed record MobResult(
             mob.X,
             mob.Y,
             mob.IsAggro,
-            mob.Teleport is { } teleport ? PositionResult.From(teleport) : null
+            mob.Teleport is { } teleport ? PositionResult.From(teleport) : null,
+            mob.InCombat
         );
+}
+
+/// <summary>The fight in progress, or the one settled on this turn.</summary>
+/// <param name="Status">"pending", "active", "resolved" or "failed".</param>
+/// <param name="Trigger">"collision" or "boss".</param>
+/// <param name="Outcome">"won", "lost" or "fled" once resolved.</param>
+public sealed record EncounterResult(
+    Guid Id,
+    string Status,
+    string Trigger,
+    Guid? CombatId,
+    IReadOnlyList<Guid> MobIds,
+    Guid? BossId,
+    string? Outcome
+)
+{
+    public static EncounterResult From(RunEncounter encounter) =>
+        new(
+            encounter.Id,
+            DungeonContract.Name(encounter.Status),
+            DungeonContract.Name(encounter.Trigger),
+            encounter.CombatId,
+            [.. encounter.MobElementIds],
+            encounter.BossElementId,
+            encounter.Outcome is { } outcome ? DungeonContract.Name(outcome) : null
+        );
+}
+
+/// <summary>Hit points and mana a hero still has in the run; null: full (Player's values).</summary>
+public sealed record HeroStateResult(Guid HeroId, int? CurrentHp, int? CurrentMana)
+{
+    public static HeroStateResult From(RunParticipant participant) =>
+        new(participant.HeroId, participant.CurrentHp, participant.CurrentMana);
 }
 
 /// <summary>
@@ -153,6 +189,33 @@ public static class DungeonContract
             DecorationKind.BluePortal => "bluePortal",
             DecorationKind.OrangePortal => "orangePortal",
             _ => throw new ArgumentOutOfRangeException(nameof(decoration), decoration, null),
+        };
+
+    public static string Name(EncounterStatus status) =>
+        status switch
+        {
+            EncounterStatus.Pending => "pending",
+            EncounterStatus.Active => "active",
+            EncounterStatus.Resolved => "resolved",
+            EncounterStatus.Failed => "failed",
+            _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
+        };
+
+    public static string Name(EncounterTrigger trigger) =>
+        trigger switch
+        {
+            EncounterTrigger.Collision => "collision",
+            EncounterTrigger.Boss => "boss",
+            _ => throw new ArgumentOutOfRangeException(nameof(trigger), trigger, null),
+        };
+
+    public static string Name(EncounterOutcome outcome) =>
+        outcome switch
+        {
+            EncounterOutcome.Won => "won",
+            EncounterOutcome.Lost => "lost",
+            EncounterOutcome.Fled => "fled",
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
         };
 
     public static string Name(DungeonRunStatus status) =>

@@ -29,7 +29,8 @@ public class DefeatFloorBossCommandHandlerTests
 
         _handler = new DefeatFloorBossCommandHandler(
             _dungeonRunRepositoryMock.Object,
-            new GeneratingDungeonProvider()
+            new GeneratingDungeonProvider(),
+            Dungeon.Domain.ValueObjects.EncounterRules.Stub
         );
     }
 
