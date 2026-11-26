@@ -148,8 +148,9 @@ termine par un boss ; celui du dernier étage est le boss final.
   salle de départ et sortie par la grille de la salle du boss, eau, lave et
   tombes ; **5** un type de déplacement sur chaque silhouette d'ennemi ;
   **6** ennemis placés par le générateur loin des portes et des murs, boss
-  seul dans sa salle, plus de loot dans les salles de combat.
-  Version actuelle : **6**. Une run créée dans une version antérieure répond
+  seul dans sa salle, plus de loot dans les salles de combat ; **7** identifiants
+  d'éléments en UUID déterministes au lieu d'index.
+  Version actuelle : **7**. Une run créée dans une version antérieure répond
   409 : il faut lancer une nouvelle exploration.
 - **Seed inconnue.** `GET /dungeons/{seed}/...` répond 404 pour une seed
   qu'aucune run n'a utilisée, et 422 pour une seed mal formée. Le donjon
@@ -165,6 +166,8 @@ termine par un boss ; celui du dernier étage est le boss final.
 | `POST /api/v1/dungeon-runs` `{ gameSessionId, runId?, seed?, heroIds? }` | Crée une run et génère son donjon. Idempotent par `runId`. `heroIds` : les héros du groupe, comme les envoie Player en gRPC. | 201, 409, 422 |
 | `GET /api/v1/dungeon-runs/{runId}/heroes` | Héros de la run et apparence choisie dans l'éditeur de Player (`skinTone`, `hairStyle`, `hairColor` absent pour un chauve), lue chez Player à chaque appel : un changement se voit au prochain chargement. Si Player ne connaît pas le héros, est injoignable ou répond une valeur inutilisable, l'apparence par défaut est renvoyée avec `isDefaultAppearance: true`, sans échec. | 200, 404 |
 | `GET /api/v1/dungeon-runs/{runId}` | État de la run : héros, tour, salle courante, éléments sous le héros, mobs vivants de l'étage (`mobs`, voir `DEPLACEMENT_MOBS.fr.md` §7). 409 si la run date d'une version antérieure du générateur. | 200, 404, 409 |
+| `POST /api/v1/dungeon-runs` `{ gameSessionId, runId?, seed? }` | Crée une run et génère son donjon (lanceur de développement ; Player passe par le gRPC `CreateDungeonRun`). Idempotent par `runId` et par `gameSessionId` : 409 si le `runId` appartient à une autre session. | 201, 409, 422 |
+| `GET /api/v1/dungeon-runs/{runId}` | État de la run : héros, tour, salle courante, éléments sous le héros, mobs vivants de l'étage (`mobs`, voir `DEPLACEMENT_MOBS.fr.md` §7), coffres ouverts de l'étage (`openedChestElementIds`). 409 si la run date d'une version antérieure du générateur. | 200, 404, 409 |
 | `POST /api/v1/dungeon-runs/{runId}/boss-defeats` | Enregistre la victoire sur le boss de l'étage : la grille s'ouvre ; sur le dernier étage, la run est gagnée (`won`). À appeler par Combat ; le héros doit être dans la salle du boss. | 200, 404, 409 |
 | `POST /api/v1/dungeon-runs/{runId}/chests/{elementId}/open` | Ouvre un élément `item` dans la zone de 3×3 cases autour du héros. Dungeon vérifie la proximité, demande à Rewards de générer/rejouer le loot, puis persiste l'ouverture uniquement après confirmation. La réponse vaut `{ run, loot }` : `run` est le snapshot autoritaire et `loot` reprend le résultat Reward (`rewardId`, contexte, `alreadyGenerated`, `items`). | 200, 404, 409, 422, 500 |
 | `GET /api/v1/dungeons/{seed}/map?floor=0` | Étage complet : `rows` (1 caractère par tuile, décodé par `legend`), salles, éléments. | 200, 404, 422 |
@@ -182,22 +185,22 @@ les données existantes.
 
 Le `command_id` et le `chest_id` envoyés à Rewards sont directement l'UUID stable
 de l'élément de coffre généré par Dungeon. Dungeon n'applique aucun hash : un retry
-réutilise donc le même identifiant idempotent et rejoue le même loot. En attendant
-la publication du package NuGet revu par Rewards, son fichier
-`reward_chest_loot_v1.proto` est copié localement dans `Dungeon.Infrastructure` ;
-ce doublon temporaire doit être remplacé par le package dès sa publication.
+réutilise donc le même identifiant idempotent et rejoue le même loot. Le contrat
+Reward vient du package NuGet `Reward.Contracts`.
 
 Types de tuiles (`legend`) : `void`, `floor`, `wall`, `door`, `obstacle`,
-`pillar`, `fence`, `gate`, `grate`, `water`, `lava`, `tomb`. Sont praticables
+`pillar`, `fence`, `gate`, `grate`, `water`, `lava`, `tomb`, `decoration`. Sont praticables
 `floor`, `door` et `grate`. On ne se tient jamais sur `gate` : y entrer une fois
 le boss de l'étage vaincu (champ `floorBossDefeated` de la run) fait descendre.
 
-Un élément vaut `{ id, type, x, y, roomId, kind }`. Types d'éléments : `enemy`,
-`boss` (un par étage), `item`, `trap`. `kind` vaut `zombie`, `mage`, `goblin`
-ou `bat` sur un `enemy`, et `null` sur les autres.
+Un élément vaut `{ id, type, x, y, roomId, kind }`, `id` étant un UUID stable
+pour la seed et l'étage. Types d'éléments : `enemy`, `boss` (un par étage),
+`item`, `trap`, `decoration` (§5 bis). `kind` vaut `zombie`, `mage`, `goblin`
+ou `bat` sur un `enemy`, ce que montre une `decoration`, et `null` sur les autres.
 
-Un étage de 40 salles pèse environ 40 Ko en JSON (3 Ko compressé), contre
-environ 1 Mo avec un objet JSON par tuile. Les réponses `map` et `cell` portent
+Un étage de 10 salles (5 500 à 13 000 tuiles) pèse environ 13 Ko en JSON (10 à
+18 Ko), moins de 2 Ko compressé, contre plusieurs centaines de Ko avec un objet
+JSON par tuile. Les réponses `map` et `cell` portent
 `Cache-Control: public, no-cache` et un `ETag` (empreinte du contenu) : le
 navigateur garde l'étage mais le redemande avant chaque usage, et reçoit un 304
 sans corps s'il n'a pas changé. Une seed ne donne le même étage que tant que le
@@ -284,8 +287,6 @@ Mesures faites en version 3, non refaites depuis :
 - **US déplacement des silhouettes** : spécifiée dans `DEPLACEMENT_MOBS.fr.md`.
 - **US déclenchement du combat** : être à une case d'une silhouette, diagonales
   comprises (distance de Chebyshev), lance le combat contre son pack.
-- Contrat gRPC `CreateDungeonRun` pour le service Player (ADR-GLOB-011) ; pour
-  l'instant la création passe par le REST.
 - Événement `DungeonRunEnded` à la victoire, défaite ou abandon.
 - Pièges : définir avec l'équipe Combat l'effet d'un `trap` (dégâts,
   désamorçage) ; le Dungeon ne fait que les placer.

@@ -5,6 +5,8 @@ Référence : [architecture des communications](architecture/ARCHITECTURE_DES_CO
 Cette configuration décrit la cible, même lorsque les adaptateurs sont absents.
 Les futures implémentations devront lire ces sections via la configuration .NET.
 Ajouter une clé ne crée pas le client, le consommateur ou l'instrumentation.
+Aujourd'hui seul `Grpc:Rewards` a un client (`RewardGrpcClient`) ; `Grpc:Combat`
+et `Grpc:Resilience` ne sont lus par aucun code.
 Le Compose de `frontend-game` fournit les valeurs de déploiement.
 
 ## gRPC sortant

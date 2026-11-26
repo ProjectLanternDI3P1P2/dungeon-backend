@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.4.0...v2.5.0) (2026-11-26)
+
+
+### Added
+
+* **logging:** emit structured container logs ([8573108](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/8573108d4653a4111ef94621f164438dc0332ce2))
+* **logging:** emit structured JSON container logs ([34aa67e](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/34aa67ec6be2045f80a353650cb18495ef435b83))
+
 ## [2.4.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.3.1...v2.4.0) (2026-11-25)
 
 

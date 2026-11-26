@@ -1,22 +1,22 @@
 name: CD - Publish and promote image
 
+# One release = one build. release-please creates the vX.Y.Z tag when the release
+# pull request is merged; this tag is the only trigger, so each version is built,
+# scanned, signed and promoted exactly once (no main-latest / main-<sha> duplicates).
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  workflow_dispatch:
 
 concurrency:
   group: cd-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   delivery:
-    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: read
-    uses: ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml@2e775e5c4f62d74bdaecbce6c3636bf41af458ad # scan gate + cosign
+    uses: ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml@ad88ca61eefa60732975f3263d0af2dcd72b99ba # scan gate + cosign + provenance
     with:
       application: dungeon
       image: 10.4.111.200:18443/lantern/dungeon-backend
