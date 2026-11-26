@@ -147,6 +147,67 @@ namespace Dungeon.Infrastructure.Migrations
 
             modelBuilder.Entity("Dungeon.Domain.Entities.DungeonRun", b =>
                 {
+                    b.OwnsMany("Dungeon.Domain.Entities.RunEncounter", "Encounters", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uuid")
+                                .HasColumnName("EncounterId");
+
+                            b1.Property<Guid?>("BossElementId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid?>("CombatId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("CreatedOnTurn")
+                                .HasColumnType("integer");
+
+                            b1.Property<Guid>("DungeonRunId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("Floor")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Outcome")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.Property<int?>("ResolvedOnTurn")
+                                .HasColumnType("integer");
+
+                            b1.Property<int?>("RoomId")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Status")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.Property<string>("Trigger")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.PrimitiveCollection<List<Guid>>("_mobElementIds")
+                                .IsRequired()
+                                .HasColumnType("uuid[]")
+                                .HasColumnName("MobElementIds");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("CombatId");
+
+                            b1.HasIndex("DungeonRunId")
+                                .IsUnique()
+                                .HasDatabaseName("IX_DungeonRunEncounters_OneOpenPerRun")
+                                .HasFilter("\"Status\" <> 'Resolved'");
+
+                            b1.ToTable("DungeonRunEncounters", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("DungeonRunId");
+                        });
+
                     b.OwnsMany("Dungeon.Domain.Entities.RunMob", "Mobs", b1 =>
                         {
                             b1.Property<Guid>("DungeonRunId")
@@ -164,6 +225,11 @@ namespace Dungeon.Infrastructure.Migrations
                             b1.Property<int>("HomeRoomId")
                                 .HasColumnType("integer");
 
+                            b1.Property<bool>("InCombat")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("boolean")
+                                .HasDefaultValue(false);
+
                             b1.Property<bool>("IsActive")
                                 .HasColumnType("boolean");
 
@@ -177,6 +243,11 @@ namespace Dungeon.Infrastructure.Migrations
                                 .IsRequired()
                                 .HasMaxLength(20)
                                 .HasColumnType("character varying(20)");
+
+                            b1.Property<bool>("SkipsNextTurn")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("boolean")
+                                .HasDefaultValue(false);
 
                             b1.Property<int?>("TeleportX")
                                 .HasColumnType("integer");
@@ -201,7 +272,33 @@ namespace Dungeon.Infrastructure.Migrations
                                 .HasForeignKey("DungeonRunId");
                         });
 
+                    b.OwnsMany("Dungeon.Domain.Entities.RunParticipant", "Participants", b1 =>
+                        {
+                            b1.Property<Guid>("DungeonRunId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("HeroId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int?>("CurrentHp")
+                                .HasColumnType("integer");
+
+                            b1.Property<int?>("CurrentMana")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("DungeonRunId", "HeroId");
+
+                            b1.ToTable("DungeonRunParticipants", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("DungeonRunId");
+                        });
+
+                    b.Navigation("Encounters");
+
                     b.Navigation("Mobs");
+
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("Dungeon.Domain.Entities.OpenedChest", b =>
