@@ -13,6 +13,9 @@ public sealed record MoveHeroRequest(Guid CommandId, Guid DungeonId, string Dire
 /// <param name="Kind">zombie, mage, goblin or bat.</param>
 public sealed record SpawnMobRequest(Guid CommandId, Guid DungeonId, string Kind, int X, int Y);
 
+/// <summary>Asks Combat again to open the fight of a pending or failed encounter (same idempotency key).</summary>
+public sealed record RetryEncounterRequest(Guid CommandId, Guid DungeonId);
+
 /// <summary>
 /// The explicit answer of the Hub to every client call: accepted with the snapshot that
 /// resulted, or refused with the reason and nothing changed.
@@ -48,6 +51,9 @@ public static class DungeonCommandErrorCodes
 
     /// <summary>Another command changed the run at the same time: resynchronize and retry (HTTP 409).</summary>
     public const string Conflict = "conflict";
+
+    /// <summary>The party is in a fight: no move until Combat reports the outcome (HTTP 409).</summary>
+    public const string InCombat = "inCombat";
 
     /// <summary>Unexpected server error (HTTP 500).</summary>
     public const string Internal = "internal";

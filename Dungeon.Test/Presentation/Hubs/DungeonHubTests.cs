@@ -26,6 +26,9 @@ public class DungeonHubTests
     private readonly GetDungeonRunByIdResult _snapshot = new() { Id = DungeonId, Turn = 1 };
     private readonly DungeonHub _hub;
 
+    private readonly Mock<Dungeon.Application.Services.IEncounterCombatStarter> _encounterStarterMock =
+        new();
+
     public DungeonHubTests()
     {
         _mediatorMock
@@ -45,9 +48,15 @@ public class DungeonHubTests
 
         RunIn(Environments.Production);
 
+        _encounterStarterMock
+            .Setup(starter =>
+                starter.StartPendingAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(true);
         _hub = new DungeonHub(
             _mediatorMock.Object,
             new HubCommandCache(new MemoryCache(new MemoryCacheOptions())),
+            _encounterStarterMock.Object,
             _environmentMock.Object,
             Logger.None
         )

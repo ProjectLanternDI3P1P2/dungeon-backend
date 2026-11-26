@@ -38,7 +38,11 @@ public sealed class DungeonRunController(
             new CreateDungeonRunCommand(
                 runId,
                 createDungeonRunDto.GameSessionId,
-                createDungeonRunDto.Seed
+                createDungeonRunDto.Seed,
+                createDungeonRunDto
+                    .HeroIds?.Where(heroId => heroId != Guid.Empty)
+                    .Distinct()
+                    .ToList()
             ),
             cancellationToken
         );

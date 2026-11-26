@@ -9,4 +9,10 @@ public class CreateDungeonRunDto
 
     /// <summary>Omit it for a brand new dungeon; set it to replay a shared one.</summary>
     public string? Seed { get; set; }
+
+    /// <summary>
+    /// The heroes of the party. Without any, a contact with a mob never opens a fight (the
+    /// historical stand-in kills the mob); Player sends them over gRPC for a game session.
+    /// </summary>
+    public List<Guid>? HeroIds { get; set; }
 }

@@ -2,6 +2,7 @@ using Dungeon.Application.Abstractions;
 using Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 using Dungeon.Application.Features.DungeonRunUseCase.MoveHero;
 using Dungeon.Application.Features.DungeonRunUseCase.SpawnMob;
+using Dungeon.Application.Services;
 using Dungeon.Domain.Exceptions;
 using FluentValidation;
 using MediatR;
@@ -23,6 +24,7 @@ namespace Dungeon.Presentation.Hubs;
 public sealed class DungeonHub(
     IMediator mediator,
     HubCommandCache commandCache,
+    IEncounterCombatStarter encounterStarter,
     IHostEnvironment environment,
     ILogger logger
 ) : Hub<IDungeonClient>
@@ -56,6 +58,11 @@ public sealed class DungeonHub(
             commandId: null,
             async () =>
             {
+                // A fight left pending or failed (Combat was down) is asked again on reconnect.
+                await encounterStarter.StartPendingAsync(
+                    request.DungeonId,
+                    Context.ConnectionAborted
+                );
                 GetDungeonRunByIdResult snapshot = await mediator.Send(
                     new GetDungeonRunByIdQuery(request.DungeonId),
                     Context.ConnectionAborted
@@ -85,6 +92,21 @@ public sealed class DungeonHub(
             request.DungeonId,
             new MoveHeroCommand(request.DungeonId, request.Direction)
         );
+    }
+
+    /// <summary>
+    /// Asks Combat again to open the fight of the encounter waiting in the run. Same
+    /// idempotency key as the first attempt: never a second fight.
+    /// </summary>
+    public Task<DungeonCommandResult> RetryEncounter(RetryEncounterRequest request)
+    {
+        logger.Information(
+            "Command {CommandId}: retry the encounter of dungeon run {DungeonId}.",
+            request.CommandId,
+            request.DungeonId
+        );
+
+        return ExecuteAsync<ICommand>(request.CommandId, request.DungeonId, null);
     }
 
     /// <summary>
@@ -119,10 +141,11 @@ public sealed class DungeonHub(
         );
     }
 
+    /// <param name="command">Null: only (re)start the pending encounter.</param>
     private async Task<DungeonCommandResult> ExecuteAsync<TCommand>(
         Guid commandId,
         Guid dungeonId,
-        TCommand command
+        TCommand? command
     )
         where TCommand : ICommand
     {
@@ -142,7 +165,17 @@ public sealed class DungeonHub(
                     commandId,
                     async () =>
                     {
-                        await mediator.Send(command, Context.ConnectionAborted);
+                        if (command is not null)
+                        {
+                            await mediator.Send(command, Context.ConnectionAborted);
+                        }
+
+                        // The command is committed: a contact it detected is opened in Combat
+                        // now, outside its transaction (no network call in a transaction).
+                        await encounterStarter.StartPendingAsync(
+                            dungeonId,
+                            Context.ConnectionAborted
+                        );
                         GetDungeonRunByIdResult snapshot = await mediator.Send(
                             new GetDungeonRunByIdQuery(dungeonId),
                             Context.ConnectionAborted
@@ -180,6 +213,14 @@ public sealed class DungeonHub(
             return DungeonCommandResult.Refuse(
                 commandId,
                 DungeonCommandErrorCodes.NotFound,
+                exception.Message
+            );
+        }
+        catch (EncounterInProgressException exception)
+        {
+            return DungeonCommandResult.Refuse(
+                commandId,
+                DungeonCommandErrorCodes.InCombat,
                 exception.Message
             );
         }
