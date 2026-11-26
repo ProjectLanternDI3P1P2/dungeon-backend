@@ -72,6 +72,13 @@ public class DungeonRunConfiguration : IEntityTypeConfiguration<DungeonRun>
         );
         builder.Navigation(run => run.Mobs).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.Ignore(run => run.HeroIds);
+        builder
+            .Property<List<Guid>>("_heroIds")
+            .HasColumnName("HeroIds")
+            .IsRequired()
+            .HasDefaultValueSql("'{}'");
+
         builder.Ignore(run => run.DiscoveredRoomIds);
         builder
             .Property<List<int>>("_discoveredRoomIds")

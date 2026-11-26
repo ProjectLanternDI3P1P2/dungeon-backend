@@ -173,8 +173,10 @@ chaque tuile visitée.
 | --- | --- | --- |
 | Front | `JoinDungeon`, `MoveHero`, écoute `DungeonStateChanged` | SignalR `/hubs/dungeons` |
 | Front | Carte d'un étage | REST `GET /api/v1/dungeons/{seed}/map` |
+| Front | Apparence des héros, au chargement du run | REST `GET /api/v1/dungeon-runs/{runId}/heroes` |
 | Front | Ouvrir un coffre → `{ run, loot }` | REST `POST /api/v1/dungeon-runs/{runId}/chests/{elementId}/open` |
 | Player | Démarrer le run d'une `GameSession` → `runId` à transmettre au client | gRPC `DungeonRunService/CreateDungeonRun` ([Dungeon.Contracts](../../Dungeon.Contracts/README.md)) |
+| Dungeon → Player | Lire l'apparence d'un héros du run | gRPC `PlayerHeroService/GetHeroAppearance` (`Player.Contracts` ≥ 5.0.0) |
 | Combat | Victoire sur le boss de l'étage | REST `POST /api/v1/dungeon-runs/{runId}/boss-defeats` (provisoire, sera remplacé par gRPC `ReportCombatResult`). Diffuse `DungeonStateChanged` aux joueurs. |
 
 Séquence solo :

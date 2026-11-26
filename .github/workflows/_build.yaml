@@ -2,6 +2,10 @@ name: Build
 
 on:
   workflow_call:
+    secrets:
+      BOT_TOKEN:
+        description: Bot token allowed to read the private contract packages.
+        required: true
 
 permissions:
   contents: read
@@ -24,5 +28,8 @@ jobs:
       # should fail here rather than at packaging time.
       - name: Build solution
         env:
-          NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }};ValidAuthenticationTypes=Basic
+          # Player.Contracts is produced by another private repository. The
+          # workflow-scoped GITHUB_TOKEN cannot read it unless package access is
+          # explicitly granted to Dungeon, so use the cross-repository bot token.
+          NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.BOT_TOKEN }};ValidAuthenticationTypes=Basic
         run: dotnet build Dungeon.Presentation.slnx --configuration Release

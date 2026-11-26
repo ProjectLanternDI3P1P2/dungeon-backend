@@ -33,7 +33,11 @@ jobs:
   test:
     name: Test
     uses: ./.github/workflows/_test.yaml
+    secrets:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
 
   build:
     name: Build
     uses: ./.github/workflows/_build.yaml
+    secrets:
+      BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

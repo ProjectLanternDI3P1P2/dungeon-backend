@@ -30,6 +30,14 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="Scrutor" Version="7.0.0" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+    <!-- Aliased: its root namespace Player would hide the Player entity. Compile assets stay
+         here, so referencing projects keep the entity; the assembly still ships at runtime. -->
+    <PackageReference
+      Include="Player.Contracts"
+      Version="5.0.0"
+      Aliases="PlayerContracts"
+      PrivateAssets="compile"
+    />
     <PackageReference Include="Reward.Contracts" Version="2.0.0" />
   </ItemGroup>
 

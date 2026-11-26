@@ -9,4 +9,7 @@ public class CreateDungeonRunDto
 
     /// <summary>Omit it for a brand new dungeon; set it to replay a shared one.</summary>
     public string? Seed { get; set; }
+
+    /// <summary>The heroes of the party, as Player sends them over gRPC; omit for no hero.</summary>
+    public IReadOnlyList<Guid>? HeroIds { get; set; }
 }

@@ -80,6 +80,13 @@ namespace Dungeon.Infrastructure.Migrations
                         .HasColumnName("DiscoveredRoomIds")
                         .HasDefaultValueSql("'{}'");
 
+                    b.PrimitiveCollection<List<Guid>>("_heroIds")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("HeroIds")
+                        .HasDefaultValueSql("'{}'");
+
                     b.Property<byte[]>("_visitedTiles")
                         .IsRequired()
                         .ValueGeneratedOnAdd()

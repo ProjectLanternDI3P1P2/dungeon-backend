@@ -17,5 +17,14 @@ public class CreateDungeonRunValidator : AbstractValidator<CreateDungeonRunComma
             .Must(SeedRules.BeAValidSeed)
             .When(command => command.Seed is not null)
             .WithMessage(SeedRules.InvalidSeedMessage);
+
+        RuleForEach(command => command.HeroIds)
+            .NotEmpty()
+            .WithMessage("HeroIds must not contain an empty id.");
+
+        RuleFor(command => command.HeroIds)
+            .Must(heroIds => heroIds!.Distinct().Count() == heroIds!.Count)
+            .When(command => command.HeroIds is not null)
+            .WithMessage("HeroIds must list each hero once.");
     }
 }
