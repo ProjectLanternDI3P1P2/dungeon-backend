@@ -1,13 +1,14 @@
-# .NET Backend Service Template
+# Dungeon backend
 
 Deployment parameters and target service communications are documented in
 [deployment configuration](docs/deployment-configuration.md).
 
-Starting point for a backend microservice: a .NET 10 Clean Architecture solution,
-the CI pipeline that guards it, and the branching flow that releases it.
+The Dungeon microservice: it generates the dungeons, owns the dungeon runs and
+serves their gameplay. A .NET 10 Clean Architecture solution, created from the
+backend template, with its CI pipeline and branching flow.
 
 Vocabulary is defined in [CONTEXT.md](./CONTEXT.md). Shared technical choices are
-recorded in [BACKEND_TECHNICAL_DECISIONS.md](./BACKEND_TECHNICAL_DECISIONS.md),
+recorded in [BACKEND_TECHNICAL_DECISIONS.md](./docs/BACKEND_TECHNICAL_DECISIONS.md),
 and the decisions behind this repository's own shape in [docs/adr](./docs/adr).
 
 [![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=ProjectLanternDI3P1P2_dungeon-backend&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ProjectLanternDI3P1P2_dungeon-backend)
@@ -56,7 +57,8 @@ versioned deterministic PRNG (`Dungeon.Domain/Services/Randomness`). The algorit
 its guarantees, the seed rules and the HTTP contract are described in
 [docs/architecture/GENERATION_DONJON.fr.md](docs/architecture/GENERATION_DONJON.fr.md).
 The shape of new dungeons is configured under `Dungeon:Generation`
-(`RoomCount`, `FloorCount`).
+(`RoomCount`, `FloorCount`, `EasterEggOneIn`), the mobs under `Dungeon:Mobs`
+([docs/architecture/DEPLACEMENT_MOBS.fr.md](docs/architecture/DEPLACEMENT_MOBS.fr.md)).
 
 ## Internal gRPC contract
 
@@ -90,6 +92,8 @@ contract base class; no additional `MapGrpcService<T>()` call is needed.
 Handlers depend on the `Application/Ports/IPlayerClient` port and its application
 model, never on Protobuf or gRPC types. The adapter uses the generated typed client,
 maps its response, and applies the configurable `Grpc:Player:TimeoutSeconds` deadline.
+`RewardGrpcClient` follows it to ask Reward for a chest's loot (`Grpc:Rewards`,
+`Reward.Contracts` package).
 
 `Dungeon.Contracts` has an independent release line. A change outside
 `Dungeon.Contracts/` never releases the package. When a contract release is made,
@@ -126,8 +130,7 @@ docker compose down -v   # -v also drops the database volume
 ```
 
 In Development, the application applies the service migrations and seeds example
-players on startup. This template intentionally contains no EF Core migration:
-create the initial migration after creating a service from it.
+players on startup. The migrations live in `Dungeon.Infrastructure/Migrations`.
 
 ## Toolchain
 
@@ -182,7 +185,8 @@ durable `dungeon.events` topic exchange, and publishes each event with the routi
 key `<type>.v<version>`.
 
 Creating a player publishes `dungeon.player.created.v1`, whose payload is the
-versioned `PlayerCreated` Protobuf message. In Compose, the adapter connects to
+versioned `PlayerCreated` Protobuf message. Opening a chest publishes
+`dungeon.chest.opened.v1` (`ChestOpened`). In Compose, the adapter connects to
 the `rabbitmq` service. For a local run without the broker, leave `Enabled` false;
 the no-op adapter keeps the application runnable while preserving the same
 application interface.
