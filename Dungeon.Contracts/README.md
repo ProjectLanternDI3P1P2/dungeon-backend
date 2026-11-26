@@ -60,3 +60,12 @@ CreateDungeonRunResponse run = await client.CreateDungeonRunAsync(
     cancellationToken: cancellationToken
 );
 ```
+
+## DungeonCombatService (`dungeon_combat_v1.proto`)
+
+Called by Combat, on the internal gRPC endpoint only, once a fight Dungeon opened
+on a contact is over.
+
+| RPC | Purpose |
+| --- | --- |
+| `ReportCombatResult` | Applies the outcome (`WON`, `LOST`, `FLED`), the heroes' final HP/mana and the defeated mobs (`defeated_element_ids`) to the run. Idempotent on `command_id` / `combat_id`. Returns the run status (`active`, `won`, `lost`). |
