@@ -16,7 +16,7 @@ The workflow itself is very small: it does not contain the build logic. It calls
 | Shared delivery logic | `ProjectLanternDI3P1P2/platform-gitops/.github/workflows/publish-and-promote.yaml` |
 | Image registry | Harbor: `registry.lantern.diiage` |
 | Dungeon image | `registry.lantern.diiage/lantern/dungeon-backend` |
-| Dockerfile | See `Dungeon_Dockerfile_Procedure.md` |
+| Dockerfile | `Dockerfile` at the repository root |
 
 ## 3. The workflow
 
