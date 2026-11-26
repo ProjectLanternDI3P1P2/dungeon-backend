@@ -77,13 +77,27 @@ runs : une modification s'applique dès le tour suivant.
   - `None` : immobile.
 - Un mob peut passer sur un piège, sans effet.
 
-## 6. Contact (bouchon en attendant Combat)
+## 6. Contact : rencontre et combat
 
-Un héros à 1 case d'un mob actif (diagonales comprises, `Position.DistanceTo`),
-qui le bouscule, ou qui entre sur la case annoncée d'un mage le passe à
-`active = false` : il est « mort » et disparaît. Pour la case annoncée, le
-contact a lieu avant que les mobs agissent : le mage ne réannonce pas ailleurs.
-L'US déclenchement remplacera ce bouchon par le combat contre son pack.
+Le contact (héros à `Dungeon:Encounter:EngageRadius` case(s) d'un mob actif,
+diagonales comprises ; pas vers un mob ; entrée sur la case annoncée d'un mage)
+dépend du mode `Dungeon:Encounter:Mode` :
+
+- **`Combat`** (Development, stack locale) et run **avec participants** : tous
+  les mobs en portée forment **un seul** pack (1 à `MaxPackSize`, 6 par défaut ;
+  au-delà, les plus proches puis par `ElementId`), figé dans une rencontre
+  `RunEncounter` (`pending`). Personne ne meurt. Un pas vers un mob est un
+  contact : le héros ne bouge pas, le tour est consommé. Entrer dans le boss
+  ouvre une rencontre `boss`. Après le commit, Dungeon appelle Combat
+  (`CreateCombat`, clé = id de la rencontre) : `active` + `combatId`, ou
+  `failed` si Combat est injoignable (le héros reste bloqué, `RetryEncounter`).
+  Tant qu'une rencontre est ouverte : `MoveHero` est refusé (`inCombat`) et les
+  mobs ne jouent pas. Combat rapporte l'issue (`ReportCombatResult`) :
+  `won` → pack tué (et boss vaincu) ; `lost` → run perdue ; `fled` → les mobs
+  survivent et sautent leur prochain tour. PV/mana des héros conservés dans la run.
+- **`Stub`** (défaut de `appsettings.json`), ou run sans participant (lanceur
+  direct, bac à sable) : bouchon historique, le mob touché passe à
+  `active = false`.
 
 ## 7. API
 
