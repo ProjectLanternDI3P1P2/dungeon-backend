@@ -75,7 +75,10 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           DUNGEON_TEST_DATABASE_CONNECTION: Host=localhost;Port=5432;Database=dungeon_test;Username=dungeon
-          NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.GITHUB_TOKEN }};ValidAuthenticationTypes=Basic
+          # Player.Contracts is produced by another private repository. The
+          # workflow-scoped GITHUB_TOKEN cannot read it unless package access is
+          # explicitly granted to Dungeon, so use the cross-repository bot token.
+          NuGetPackageSourceCredentials_github: Username=${{ github.actor }};Password=${{ secrets.BOT_TOKEN }};ValidAuthenticationTypes=Basic
         run: |
           dotnet dotnet-sonarscanner begin \
             /k:"ProjectLanternDI3P1P2_dungeon-backend" \
