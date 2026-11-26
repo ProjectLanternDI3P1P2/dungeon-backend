@@ -4,6 +4,8 @@ FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS contracts
 WORKDIR /contracts
 COPY --from=reward-contracts . .
 RUN dotnet pack Reward.Contracts/Reward.Contracts.csproj --configuration Release --output /local-packages
+COPY --from=combat-contracts Combat.Contracts /combat/Combat.Contracts
+RUN dotnet pack /combat/Combat.Contracts/Combat.Contracts.csproj --configuration Release --output /local-packages
 
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
 WORKDIR /src
