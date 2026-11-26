@@ -5,11 +5,29 @@ using Dungeon.Presentation.Hubs;
 using Dungeon.Presentation.Middleware;
 using Microsoft.AspNetCore.ResponseCompression;
 using Serilog;
+using Serilog.Templates;
 
 namespace Dungeon.Presentation.Extensions;
 
 public static class BuilderExtension
 {
+    private const string ConsoleJsonTemplate =
+        """
+            { {
+                timestamp: @t,
+                level: level,
+                service: 'dungeon-backend',
+                origin: 'backend',
+                message: @m,
+                properties: Rest(),
+                exception: if @x is not null then {
+                    type: TypeOf(@x),
+                    message: Inspect(@x).Message,
+                    stack: Inspect(@x).StackTrace
+                } else undefined()
+            } }
+            """ + "\n";
+
     /// <summary>
     /// Lets a frontend dev server on another port call the service directly. Browsers
     /// normally reach services through the API Gateway, which owns CORS (ADR-GLOB-003):
@@ -36,7 +54,7 @@ public static class BuilderExtension
         );
 
         // A dungeon floor is ~13 KB of JSON, mostly repeated wall and void characters:
-        // compressed, it weighs ~1.3 KB. Responses hold no secret next to attacker-controlled
+        // compressed, it weighs under 2 KB. Responses hold no secret next to attacker-controlled
         // input, so compressing over HTTPS does not open a BREACH-style leak.
         builder.Services.AddResponseCompression(options =>
         {
@@ -87,7 +105,9 @@ public static class BuilderExtension
                     .ReadFrom.Configuration(context.Configuration)
                     .Enrich.FromLogContext()
                     .Enrich.With<LowercaseLevelEnricher>()
-                    .Destructure.With<IgnoreLoggingDestructuringPolicy>();
+                    .Enrich.With<SensitiveDataEnricher>()
+                    .Destructure.With<IgnoreLoggingDestructuringPolicy>()
+                    .WriteTo.Console(new ExpressionTemplate(ConsoleJsonTemplate));
             },
             preserveStaticLogger: true
         );

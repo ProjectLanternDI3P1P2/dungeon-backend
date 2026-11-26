@@ -1,6 +1,6 @@
 # Déplacement des silhouettes
 
-> US déplacement des mobs, après la génération (`GENERATION_DONJON.fr.md`, v6).
+> US déplacement des mobs, après la génération (`GENERATION_DONJON.fr.md`, v6 et suivantes).
 
 ## 1. Principe
 
@@ -18,7 +18,7 @@ les mobs.
   (`Start`, descente), vidée à la descente.
 - Liste des **salles découvertes** de l'étage : une salle est découverte dès
   qu'**un héros du groupe** pose le pied sur une de ses cases ou sur sa porte.
-- Une migration EF, appliquée en local par `make migrate`.
+- Une migration EF, appliquée au démarrage en `Development`.
 
 ## 3. Un tour
 
@@ -60,7 +60,7 @@ runs : une modification s'applique dès le tour suivant.
 ```
 
 - `Cadence` : motif répété, `1` le mob agit, `0` il passe son tour. Le compteur
-  démarre à l'aggro.
+  part de l'apparition et repart de zéro à l'aggro.
 - `Step` :
   - `Orthogonal` : 1 pas dans les 4 directions.
   - `Diagonal` : 1 pas dans les 8 directions, sans couper le coin entre deux murs.
@@ -90,7 +90,7 @@ L'US déclenchement remplacera ce bouchon par le combat contre son pack.
 La réponse de `MoveHero` sur le Hub (`/hubs/dungeons`, voir `DUNGEON_HUB.fr.md`), l'événement `DungeonStateChanged` et `GET /dungeon-runs/{id}` renvoient en plus :
 
 ```json
-"mobs": [{ "id": 3, "kind": "mage", "x": 41, "y": 12, "aggro": true,
+"mobs": [{ "id": "0199a5b2-...", "kind": "mage", "x": 41, "y": 12, "aggro": true,
            "nextTeleport": { "x": 44, "y": 12 } }]
 ```
 
@@ -107,4 +107,4 @@ run) : le front les fait glisser jusque-là avant de les effacer.
 
 ## 9. Hors périmètre
 
-Multijoueur, WebSocket, vrai combat (US déclenchement).
+Multijoueur, vrai combat (US déclenchement).
