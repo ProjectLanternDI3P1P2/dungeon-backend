@@ -2,6 +2,10 @@ name: Build
 
 on:
   workflow_call:
+    secrets:
+      BOT_TOKEN:
+        description: Bot token allowed to read the private contract packages.
+        required: true
 
 permissions:
   contents: read
