@@ -1,5 +1,12 @@
 # Changelog
 
+## [6.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/contracts-v5.0.0...contracts-v6.0.0) (2026-11-27)
+
+
+### Added
+
+* **contracts:** add ReportCombatResult to the Dungeon contract ([7507cea](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/7507cea83a953ce878c2697c9efc78ad9fb552d6))
+
 ## [5.0.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/contracts-v4.0.0...contracts-v5.0.0) (2026-11-25)
 
 
