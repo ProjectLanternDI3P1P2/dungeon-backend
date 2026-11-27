@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package dungeon.v1;
+
+option csharp_namespace = "Dungeon.Contracts.V1";
+
+// Contract owned by the Dungeon microservice. Field numbers are permanent:
+// do not reuse a deleted number; reserve it instead.
+//
+// Combat calls this service, on the internal gRPC endpoint only, once a fight that
+// Dungeon opened on a contact with a pack of mobs is over.
+service DungeonCombatService {
+  // Applies the outcome of a fight to the run: the defeated mobs leave the grid, the
+  // heroes keep their hit points and mana, or the run is lost.
+  //
+  // Idempotent (ADR-0025) on command_id and on combat_id: a fight is reported once;
+  // replaying the call returns the same run status and applies nothing twice.
+  //
+  // Errors: INVALID_ARGUMENT for a malformed request; NOT_FOUND when the run or the
+  // encounter is unknown; FAILED_PRECONDITION when combat_id is not the fight of
+  // the encounter.
+  rpc ReportCombatResult (ReportCombatResultRequest) returns (ReportCombatResultResponse);
+}
+
+enum CombatOutcome {
+  COMBAT_OUTCOME_UNSPECIFIED = 0;
+  // Every monster is knocked out.
+  COMBAT_OUTCOME_WON = 1;
+  // Every hero is knocked out: the run is lost.
+  COMBAT_OUTCOME_LOST = 2;
+  // The party ran away: the mobs survive and skip their next turn.
+  COMBAT_OUTCOME_FLED = 3;
+}
+
+message ReportCombatResultRequest {
+  // RFC 4122 textual UUID: the idempotency key of the Combat command.
+  string command_id = 1;
+  // RFC 4122 textual UUID of the fight, owned by Combat.
+  string combat_id = 2;
+  // RFC 4122 textual UUID of the run.
+  string run_id = 3;
+  // RFC 4122 textual UUID of the encounter, the command_id Dungeon sent to CreateCombat.
+  string encounter_id = 4;
+  CombatOutcome outcome = 5;
+  // State of each hero at the end of the fight.
+  repeated HeroFinalState heroes = 6;
+  // Ids of the mobs (dungeon elements) knocked out during the fight.
+  repeated string defeated_element_ids = 7;
+}
+
+message HeroFinalState {
+  string hero_id = 1;
+  int32 current_hp = 2;
+  int32 current_mana = 3;
+  bool knocked_out = 4;
+}
+
+message ReportCombatResultResponse {
+  // "active", "won" or "lost".
+  string run_status = 1;
+}

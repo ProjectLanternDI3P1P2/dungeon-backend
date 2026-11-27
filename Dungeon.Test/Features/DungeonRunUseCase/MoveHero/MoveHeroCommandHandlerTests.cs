@@ -31,7 +31,8 @@ public class MoveHeroCommandHandlerTests
         _handler = new MoveHeroCommandHandler(
             _dungeonRunRepositoryMock.Object,
             new GeneratingDungeonProvider(),
-            MobRules.Default
+            MobRules.Default,
+            Dungeon.Domain.ValueObjects.EncounterRules.Stub
         );
     }
 
@@ -47,7 +48,8 @@ public class MoveHeroCommandHandlerTests
         MoveHeroCommandHandler handler = new(
             _dungeonRunRepositoryMock.Object,
             new GeneratingDungeonProvider(),
-            everyoneHunts
+            everyoneHunts,
+            Dungeon.Domain.ValueObjects.EncounterRules.Stub
         );
         Position centre = WalkToTheCentreOfTheStartRoom();
 

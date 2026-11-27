@@ -65,12 +65,66 @@ public class DungeonRunConfiguration : IEntityTypeConfiguration<DungeonRun>
                 mob.HasKey("DungeonRunId", nameof(RunMob.ElementId));
                 mob.Property(m => m.ElementId).ValueGeneratedNever();
                 mob.Property(m => m.Kind).IsRequired().HasMaxLength(20).HasConversion<string>();
+                mob.Property(m => m.InCombat).IsRequired().HasDefaultValue(false);
+                mob.Property(m => m.SkipsNextTurn).IsRequired().HasDefaultValue(false);
                 mob.Ignore(m => m.Position);
                 mob.Ignore(m => m.Teleport);
                 mob.Ignore(m => m.Door);
             }
         );
         builder.Navigation(run => run.Mobs).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // The heroes of the party; a run created before they were stored has none (Stub).
+        builder.OwnsMany(
+            run => run.Participants,
+            participant =>
+            {
+                participant.ToTable("DungeonRunParticipants");
+                participant.WithOwner().HasForeignKey("DungeonRunId");
+                participant.HasKey("DungeonRunId", nameof(RunParticipant.HeroId));
+                participant.Property(p => p.HeroId).ValueGeneratedNever();
+            }
+        );
+        builder.Navigation(run => run.Participants).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Contacts fought in Combat. One open encounter at most per run.
+        builder.OwnsMany(
+            run => run.Encounters,
+            encounter =>
+            {
+                encounter.ToTable("DungeonRunEncounters");
+                encounter.WithOwner().HasForeignKey("DungeonRunId");
+                encounter.HasKey(e => e.Id);
+                encounter.Property(e => e.Id).HasColumnName("EncounterId").ValueGeneratedNever();
+                encounter
+                    .Property(e => e.Trigger)
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasConversion<string>();
+                encounter
+                    .Property(e => e.Status)
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasConversion<string>();
+                encounter.Property(e => e.Outcome).HasMaxLength(20).HasConversion<string>();
+                encounter.Ignore(e => e.MobElementIds);
+                encounter.Ignore(e => e.IsOpen);
+                encounter
+                    .Property<List<Guid>>("_mobElementIds")
+                    .HasColumnName("MobElementIds")
+                    .IsRequired();
+                encounter
+                    .HasIndex("DungeonRunId")
+                    .IsUnique()
+                    .HasFilter("\"Status\" <> 'Resolved'")
+                    .HasDatabaseName("IX_DungeonRunEncounters_OneOpenPerRun");
+                encounter.HasIndex(e => e.CombatId);
+            }
+        );
+        builder.Navigation(run => run.Encounters).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Ignore(run => run.OpenEncounter);
+        builder.Ignore(run => run.VisibleEncounter);
 
         builder.Ignore(run => run.DiscoveredRoomIds);
         builder

@@ -53,6 +53,8 @@ d'erreur métier : un refus est une réponse `accepted: false`.
 | --- | --- | --- |
 | `JoinDungeon` | `{ dungeonId }` | Rejoint le groupe `dungeon:{dungeonId}` et renvoie le snapshot courant. Rappeler pour se resynchroniser (après reconnexion, conflit, etc.). |
 | `MoveHero` | `{ commandId, dungeonId, direction }` | Une tuile, un tour, puis le tour des mobs. `direction` : `north`, `east`, `south`, `west`. Entrer dans la grille ouverte de la salle du boss fait descendre à l'étage suivant. |
+| `RetryEncounter` | `{ commandId, dungeonId }` | Redemande à Combat le combat d'une rencontre `pending` ou `failed`, avec la **même** clé d'idempotence (jamais un second combat). `JoinDungeon` relance aussi une rencontre en attente. |
+| `SpawnMob` | `{ commandId, dungeonId, kind, x, y }` | **Debug.** Pose un mob (`zombie`, `mage`, `goblin`, `bat`) sur une case libre de la salle. Refusé (`refused`) hors de l'environnement `Development`, puis hors du bac à sable : en `Development` seulement, la seed réservée `0000000SANDBX` génère deux salles nues reliées par un couloir, sans élément ; ailleurs, c'est une seed ordinaire. Les mobs ne jouent pas au spawn mais au prochain déplacement du héros. |
 | `SpawnMob` | `{ commandId, dungeonId, kind, x, y }` | **Debug.** Pose un mob (`zombie`, `mage`, `goblin`, `bat`) sur une case de sol libre d'une salle. Refusé (`refused`) hors de l'environnement `Development`, puis hors du bac à sable : en `Development` seulement, la seed réservée `0000000SANDBX` génère, sur chaque étage, deux salles nues (le départ au sud, une salle vide au nord) puis les cinq salles easter egg, en colonne et reliées par des couloirs droits, sans ennemi ni boss ; ailleurs, c'est une seed ordinaire. Les mobs ne jouent pas au spawn mais au prochain déplacement du héros. |
 
 `dungeonId` = `runId` renvoyé par `CreateDungeonRun` (gRPC) ou par
@@ -99,6 +101,9 @@ effet.
   "snapshot": { "...": "voir §5" }
 }
 ```
+
+Codes de refus : `validation`, `notFound`, `refused`, `conflict`, `internal`, et
+`inCombat` (un combat est en cours : aucun déplacement avant son issue).
 
 Refus :
 
@@ -167,6 +172,24 @@ chaque nouvel étage.
 Le client reconstruit son brouillard en rejouant sa règle de révélation sur
 chaque tuile visitée.
 
+### Rencontre (combat)
+
+Champs additifs du snapshot :
+
+```json
+"encounter": {
+  "id": "0192…", "status": "active", "trigger": "collision",
+  "combatId": "…", "mobIds": ["…", "…"], "bossId": null, "outcome": null
+},
+"heroes": [{ "heroId": "…", "currentHp": 68, "currentMana": 21 }],
+"combatEnabled": true
+```
+
+`encounter` : `null`, ou le combat en cours (`pending`, `active`, `failed`), ou
+celui réglé sur ce tour (`resolved`, montré une fois). `mobs[].inCombat` marque
+les mobs engagés. `combatEnabled` : un contact ouvre un vrai combat (mode
+`Combat` et run avec participants). Voir `DEPLACEMENT_MOBS.fr.md` §6.
+
 ## 6. Pour les autres services
 
 | Squad | Appel | Transport |
@@ -175,7 +198,8 @@ chaque tuile visitée.
 | Front | Carte d'un étage | REST `GET /api/v1/dungeons/{seed}/map` |
 | Front | Ouvrir un coffre → `{ run, loot }` | REST `POST /api/v1/dungeon-runs/{runId}/chests/{elementId}/open` |
 | Player | Démarrer le run d'une `GameSession` → `runId` à transmettre au client | gRPC `DungeonRunService/CreateDungeonRun` ([Dungeon.Contracts](../../Dungeon.Contracts/README.md)) |
-| Combat | Victoire sur le boss de l'étage | REST `POST /api/v1/dungeon-runs/{runId}/boss-defeats` (provisoire, sera remplacé par gRPC `ReportCombatResult`). Diffuse `DungeonStateChanged` aux joueurs. |
+| Combat | Issue d'un combat ouvert par Dungeon (`won` / `lost` / `fled`, PV/mana, mobs vaincus) | gRPC `DungeonCombatService/ReportCombatResult`, idempotent. Diffuse `DungeonStateChanged` aux joueurs. En mode `Stub`, le boss reste vaincu par le REST provisoire `POST /api/v1/dungeon-runs/{runId}/boss-defeats` (refusé en mode `Combat`). |
+| Dungeon → Combat | Ouvrir le combat d'une rencontre (pack 1..N ou boss) | gRPC `CombatService/CreateCombat`, clé = id de la rencontre, appelé après le commit. |
 
 Séquence solo :
 
@@ -200,5 +224,5 @@ sequenceDiagram
 - Autorisation par participant (roster de la `GameSession`) : multijoueur.
 - Orchestration des combats de salle ; l'ouverture des coffres passe déjà par
   l'API HTTP Dungeon puis par `GenerateChestLoot` en gRPC vers Reward.
-- gRPC `ReportCombatResult` et `AbandonDungeonRun`.
+- gRPC `AbandonDungeonRun`.
 - Backplane Redis : un seul replica Dungeon.

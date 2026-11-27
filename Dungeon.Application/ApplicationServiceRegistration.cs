@@ -18,6 +18,8 @@ public static class ApplicationServiceRegistration
             cf.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
 
-        return services.AddValidatorsFromAssembly(assembly);
+        return services
+            .AddValidatorsFromAssembly(assembly)
+            .AddScoped<Services.IEncounterCombatStarter, Services.EncounterCombatStarter>();
     }
 }

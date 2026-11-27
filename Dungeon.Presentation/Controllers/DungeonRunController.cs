@@ -8,6 +8,7 @@ using Dungeon.Presentation.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
 using ILogger = Serilog.ILogger;
 
 namespace Dungeon.Presentation.Controllers;
@@ -18,6 +19,7 @@ namespace Dungeon.Presentation.Controllers;
 public sealed class DungeonRunController(
     IMediator mediator,
     IHubContext<DungeonHub, IDungeonClient> dungeonHub,
+    IHostEnvironment environment,
     ILogger logger
 ) : ControllerBase
 {
@@ -38,7 +40,8 @@ public sealed class DungeonRunController(
             new CreateDungeonRunCommand(
                 runId,
                 createDungeonRunDto.GameSessionId,
-                createDungeonRunDto.Seed
+                createDungeonRunDto.Seed,
+                PartyOf(createDungeonRunDto)
             ),
             cancellationToken
         );
@@ -113,5 +116,29 @@ public sealed class DungeonRunController(
         await dungeonHub.Clients.Group(DungeonHub.GroupName(runId)).DungeonStateChanged(run);
 
         return Ok(new OpenChestResponse(run, loot));
+    }
+
+    /// <summary>
+    /// The heroes the caller asks to bring along. Nothing here proves a hero is the caller's,
+    /// so only the development launcher may name them; the real flow is Player's gRPC call,
+    /// which sends the heroes of the game session. Anywhere else the list is ignored.
+    /// </summary>
+    private List<Guid>? PartyOf(CreateDungeonRunDto dto)
+    {
+        if (dto.HeroIds is not { Count: > 0 })
+        {
+            return null;
+        }
+
+        if (!environment.IsDevelopment())
+        {
+            logger.Warning(
+                "Hero ids ignored on the REST creation of a run for game session {GameSessionId}: only Player's gRPC call may name the party.",
+                dto.GameSessionId
+            );
+            return null;
+        }
+
+        return [.. dto.HeroIds.Where(heroId => heroId != Guid.Empty).Distinct()];
     }
 }

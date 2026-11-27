@@ -1,5 +1,7 @@
 using Dungeon.Application.Models;
 using Dungeon.Domain.Entities;
+using Dungeon.Domain.Enums;
+using Dungeon.Domain.ValueObjects;
 
 namespace Dungeon.Application.Features.DungeonRunUseCase.GetDungeonRunById;
 
@@ -45,8 +47,25 @@ public sealed class GetDungeonRunByIdResult
 
     public DateTimeOffset StartedAt { get; init; }
 
+    /// <summary>The fight in progress (the party cannot move), or the one settled this turn; null otherwise.</summary>
+    public EncounterResult? Encounter { get; init; }
+
+    /// <summary>
+    /// A contact opens a fight in Combat (Combat mode and a party); false: the historical
+    /// stand-in, a contact kills the mob and the boss is defeated by the REST shortcut.
+    /// </summary>
+    public bool CombatEnabled { get; init; }
+
+    /// <summary>The heroes of the party and the hit points and mana they have left.</summary>
+    public IReadOnlyList<HeroStateResult> Heroes { get; init; } = [];
+
     /// <param name="dungeon">The dungeon of the run, rebuilt from its seed.</param>
-    public static GetDungeonRunByIdResult From(DungeonRun run, GeneratedDungeon dungeon)
+    /// <param name="encounterRules">How contacts become fights; Stub when omitted.</param>
+    public static GetDungeonRunByIdResult From(
+        DungeonRun run,
+        GeneratedDungeon dungeon,
+        EncounterRules? encounterRules = null
+    )
     {
         DungeonFloor floor = dungeon.Floors[run.CurrentFloor];
 
@@ -80,6 +99,12 @@ public sealed class GetDungeonRunByIdResult
                 .Order()
                 .ToList(),
             StartedAt = run.StartedAt,
+            Encounter = run.VisibleEncounter is { } encounter
+                ? EncounterResult.From(encounter)
+                : null,
+            Heroes = [.. run.Participants.Select(HeroStateResult.From)],
+            CombatEnabled =
+                encounterRules is { Mode: EncounterMode.Combat } && run.Participants.Count > 0,
         };
     }
 }

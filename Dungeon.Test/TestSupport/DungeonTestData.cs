@@ -213,7 +213,7 @@ public static class DungeonTestData
 
     /// <summary>
     /// A hand-made last floor for the mob tests: <c>#</c> wall, <c>.</c> floor, <c>+</c> door,
-    /// <c>t</c> trap, <c>H</c> where the hero arrives, <c>z</c> <c>m</c> <c>g</c> <c>b</c> a
+    /// <c>t</c> trap, <c>X</c> the boss, <c>H</c> where the hero arrives, <c>z</c> <c>m</c> <c>g</c> <c>b</c> a
     /// zombie, mage, goblin or bat. The first room is the start room, the others are combat
     /// rooms; an element belongs to the room that holds it.
     /// </summary>
@@ -262,6 +262,19 @@ public static class DungeonTestData
                             position,
                             RoomOf(position),
                             kind
+                        )
+                    );
+                }
+                else if (tile == 'X')
+                {
+                    elements.Add(
+                        new DungeonElement(
+                            Guid.Parse(
+                                $"00000000-0000-0000-0000-{elements.Count + 1:000000000000}"
+                            ),
+                            ElementType.Boss,
+                            position,
+                            RoomOf(position)
                         )
                     );
                 }

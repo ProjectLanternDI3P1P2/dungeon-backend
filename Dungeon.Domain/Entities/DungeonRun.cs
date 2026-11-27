@@ -14,6 +14,8 @@ namespace Dungeon.Domain.Entities;
 public sealed class DungeonRun
 {
     private readonly List<RunMob> _mobs = [];
+    private readonly List<RunParticipant> _participants = [];
+    private readonly List<RunEncounter> _encounters = [];
     private List<int> _discoveredRoomIds = [];
     private byte[] _visitedTiles = [];
 
@@ -75,13 +77,31 @@ public sealed class DungeonRun
 
     public Position HeroPosition => new(HeroX, HeroY);
 
+    /// <summary>The heroes of the party. Empty for a run started without Player (sandbox, dev).</summary>
+    public IReadOnlyList<RunParticipant> Participants => _participants;
+
+    /// <summary>Every encounter of the run, settled ones included.</summary>
+    public IReadOnlyList<RunEncounter> Encounters => _encounters;
+
+    /// <summary>The fight in progress, if any: the party is blocked and the mobs wait.</summary>
+    public RunEncounter? OpenEncounter =>
+        _encounters.SingleOrDefault(encounter => encounter.IsOpen);
+
+    /// <summary>
+    /// The encounter to show: the open one, or the one settled on this very turn (shown once,
+    /// so that the client sees the outcome), otherwise none.
+    /// </summary>
+    public RunEncounter? VisibleEncounter =>
+        OpenEncounter ?? _encounters.SingleOrDefault(encounter => encounter.ResolvedOnTurn == Turn);
+
     public DungeonSettings Settings => new(RoomCount, FloorCount);
 
     public static DungeonRun Start(
         Guid runId,
         Guid gameSessionId,
         GeneratedDungeon dungeon,
-        DateTimeOffset startedAt
+        DateTimeOffset startedAt,
+        IEnumerable<Guid>? heroIds = null
     )
     {
         Position entrance = dungeon.Floors[0].Entrance;
@@ -102,6 +122,10 @@ public sealed class DungeonRun
             StartedAt = startedAt,
         };
         run.ArriveOn(dungeon.Floors[0]);
+        foreach (Guid heroId in (heroIds ?? []).Distinct())
+        {
+            run._participants.Add(RunParticipant.Join(heroId));
+        }
 
         return run;
     }
@@ -114,9 +138,27 @@ public sealed class DungeonRun
     /// their turn.
     /// </summary>
     /// <returns>Where the hero stands after the move, on the current floor.</returns>
-    public Position MoveHero(Direction direction, GeneratedDungeon dungeon, MobRules mobRules)
+    /// <param name="encounterRules">
+    /// How contacts become fights; Stub (contact kills the mob) when omitted, and for a run
+    /// without participants: Combat needs a hero.
+    /// </param>
+    public Position MoveHero(
+        Direction direction,
+        GeneratedDungeon dungeon,
+        MobRules mobRules,
+        EncounterRules? encounterRules = null
+    )
     {
         DungeonFloor floor = GetCurrentFloor(dungeon);
+        if (OpenEncounter is RunEncounter fight)
+        {
+            throw new EncounterInProgressException(Id, fight.Id);
+        }
+
+        EncounterRules? combat =
+            encounterRules is { Mode: EncounterMode.Combat } && _participants.Count > 0
+                ? encounterRules
+                : null;
         Position target = HeroPosition.Step(direction);
 
         if (!floor.Contains(target))
@@ -135,19 +177,199 @@ public sealed class DungeonRun
             throw new InvalidMoveException(target, $"a {cell} tile is not walkable");
         }
 
-        if (_mobs.Any(mob => mob.IsActive && mob.Position == target))
+        if (
+            combat is not null
+            && !IsFloorBossDefeated
+            && floor
+                .GetElementsAt(target)
+                .FirstOrDefault(element => element.Type == ElementType.Boss)
+                is DungeonElement boss
+        )
         {
-            throw new InvalidMoveException(target, "a mob stands there");
+            // Walking into the boss starts its fight; the hero stays where it stands.
+            List<RunMob> escort =
+            [
+                .. _mobs.Where(mob =>
+                    mob.IsActive && mob.Position.DistanceTo(HeroPosition) <= combat.EngageRadius
+                ),
+            ];
+            StartEncounter(EncounterTrigger.Boss, escort, boss.Id, floor, combat, Turn + 1);
+            Turn++;
+            return HeroPosition;
+        }
+
+        if (_mobs.FirstOrDefault(mob => mob.IsActive && mob.Position == target) is RunMob blocker)
+        {
+            if (combat is null)
+            {
+                throw new InvalidMoveException(target, "a mob stands there");
+            }
+
+            // A step into a mob is a contact: the hero stays, the mob and those in reach fight.
+            List<RunMob> pack =
+            [
+                blocker,
+                .. _mobs.Where(mob =>
+                    mob.IsActive
+                    && mob != blocker
+                    && mob.Position.DistanceTo(HeroPosition) <= combat.EngageRadius
+                ),
+            ];
+            StartEncounter(EncounterTrigger.Collision, pack, null, floor, combat, Turn + 1);
+            Turn++;
+            return HeroPosition;
         }
 
         HeroX = target.X;
         HeroY = target.Y;
         Visit(target, floor);
-        MobTurn.Play(this, floor, mobRules);
+        MobTurn.Play(this, floor, mobRules, combat);
         Turn++;
 
         return target;
     }
+
+    /// <summary>
+    /// Freezes the pack of a contact into one encounter: the nearest mobs first, then by
+    /// element id, at most <see cref="EncounterRules.MaxPackSize"/>. The mobs left out stay
+    /// active; nobody dies until Combat reports the outcome.
+    /// </summary>
+    internal void StartEncounter(
+        EncounterTrigger trigger,
+        IReadOnlyCollection<RunMob> engaged,
+        Guid? bossElementId,
+        DungeonFloor floor,
+        EncounterRules rules,
+        int turn
+    )
+    {
+        Position hero = HeroPosition;
+        int room = bossElementId is null ? rules.MaxPackSize : Math.Max(0, rules.MaxPackSize - 1);
+        List<RunMob> pack =
+        [
+            .. engaged
+                .Distinct()
+                .OrderBy(mob => mob.Position.DistanceTo(hero))
+                .ThenBy(mob => mob.ElementId)
+                .Take(room),
+        ];
+        foreach (RunMob mob in pack)
+        {
+            mob.Engage();
+        }
+
+        _encounters.Add(
+            RunEncounter.Start(
+                trigger,
+                CurrentFloor,
+                floor.GetRoomId(hero),
+                [.. pack.Select(mob => mob.ElementId)],
+                bossElementId,
+                turn
+            )
+        );
+    }
+
+    /// <summary>Combat opened the fight of the encounter. Idempotent.</summary>
+    public void MarkEncounterCombatStarted(Guid encounterId, Guid combatId) =>
+        RequireEncounter(encounterId).CombatStarted(combatId);
+
+    /// <summary>Combat could not be reached: the encounter waits for a retry, the party stays blocked.</summary>
+    public void MarkEncounterCombatUnavailable(Guid encounterId) =>
+        RequireEncounter(encounterId).CombatUnavailable();
+
+    /// <summary>
+    /// Applies the outcome Combat reported. Won: the pack dies (the boss is defeated for a
+    /// boss fight). Lost: the run is lost. Fled: the defeated mobs die, the others survive
+    /// and rest on their next turn. The heroes keep the hit points and mana they ended with.
+    /// Reporting the same fight twice changes nothing.
+    /// </summary>
+    public void ResolveEncounter(
+        Guid encounterId,
+        Guid combatId,
+        EncounterOutcome outcome,
+        IReadOnlyCollection<HeroFinalState> heroes,
+        IReadOnlyCollection<Guid> defeatedElementIds,
+        GeneratedDungeon dungeon
+    )
+    {
+        RunEncounter encounter = RequireEncounter(encounterId);
+        if (encounter.Status == EncounterStatus.Resolved)
+        {
+            if (encounter.CombatId != combatId)
+            {
+                throw new EncounterNotFoundException(
+                    Id,
+                    encounterId,
+                    $"it was settled by combat '{encounter.CombatId}', not '{combatId}'"
+                );
+            }
+
+            return;
+        }
+
+        if (encounter.CombatId is Guid known && known != combatId)
+        {
+            throw new EncounterNotFoundException(
+                Id,
+                encounterId,
+                $"its fight is combat '{known}', not '{combatId}'"
+            );
+        }
+
+        Turn++;
+        HashSet<Guid> defeated = [.. defeatedElementIds];
+        foreach (RunMob mob in _mobs.Where(mob => encounter.MobElementIds.Contains(mob.ElementId)))
+        {
+            bool dies =
+                outcome == EncounterOutcome.Won
+                || (outcome == EncounterOutcome.Fled && defeated.Contains(mob.ElementId));
+            if (dies && mob.IsActive)
+            {
+                mob.Kill(Turn);
+            }
+            else
+            {
+                mob.Release(skipNextTurn: outcome == EncounterOutcome.Fled);
+            }
+        }
+
+        foreach (HeroFinalState hero in heroes)
+        {
+            RunParticipant? participant = _participants.SingleOrDefault(p =>
+                p.HeroId == hero.HeroId
+            );
+            // A hero knocked out in a fight the party won gets up with 1 HP.
+            participant?.Keep(
+                outcome == EncounterOutcome.Lost ? hero.CurrentHp : Math.Max(1, hero.CurrentHp),
+                hero.CurrentMana
+            );
+        }
+
+        if (outcome == EncounterOutcome.Lost && Status == DungeonRunStatus.Active)
+        {
+            Status = DungeonRunStatus.Lost;
+        }
+        else if (
+            outcome == EncounterOutcome.Won
+            && encounter.Trigger == EncounterTrigger.Boss
+            && Status == DungeonRunStatus.Active
+            && encounter.Floor == CurrentFloor
+        )
+        {
+            IsFloorBossDefeated = true;
+            if (dungeon.Floors[CurrentFloor].IsFinalFloor)
+            {
+                Status = DungeonRunStatus.Won;
+            }
+        }
+
+        encounter.Resolve(combatId, outcome, Turn);
+    }
+
+    private RunEncounter RequireEncounter(Guid encounterId) =>
+        _encounters.SingleOrDefault(encounter => encounter.Id == encounterId)
+        ?? throw new EncounterNotFoundException(Id, encounterId, "no such encounter in this run");
 
     /// <summary>
     /// Debug only: puts a new mob on a free floor tile of the sandbox (<see cref="SandboxDungeon"/>).

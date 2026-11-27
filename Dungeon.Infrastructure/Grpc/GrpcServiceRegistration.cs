@@ -26,6 +26,16 @@ public static class GrpcServiceRegistration
                 .Get<RewardGrpcClientOptions>()
             ?? new RewardGrpcClientOptions();
 
+        CombatGrpcClientOptions combatGrpcClientOptions =
+            configuration
+                .GetSection(CombatGrpcClientOptions.SectionName)
+                .Get<CombatGrpcClientOptions>()
+            ?? new CombatGrpcClientOptions();
+        if (!Uri.TryCreate(combatGrpcClientOptions.Address, UriKind.Absolute, out _))
+        {
+            throw new InvalidOperationException("Grpc:Combat:Address must be an absolute URI.");
+        }
+
         ValidatePlayerGrpcClientOptions(playerGrpcClientOptions);
         ValidateRewardGrpcClientOptions(rewardGrpcClientOptions);
 
@@ -37,6 +47,11 @@ public static class GrpcServiceRegistration
             )
             .Services.AddGrpcClient<RewardLootService.RewardLootServiceClient>(options =>
                 options.Address = new Uri(rewardGrpcClientOptions.Address)
+            );
+        services
+            .AddSingleton(Options.Create(combatGrpcClientOptions))
+            .AddGrpcClient<Combat.Contracts.V1.CombatService.CombatServiceClient>(options =>
+                options.Address = new Uri(combatGrpcClientOptions.Address)
             );
 
         return services.Scan(scan =>

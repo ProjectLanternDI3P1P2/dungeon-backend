@@ -34,7 +34,7 @@ public sealed class DungeonRunGrpcService(IMediator mediator, ILogger logger)
 
         // The command id doubles as the id of a new run: a retry is idempotent.
         await mediator.Send(
-            new CreateDungeonRunCommand(commandId, gameSessionId, seed),
+            new CreateDungeonRunCommand(commandId, gameSessionId, seed, heroIds),
             context.CancellationToken
         );
         // Read back by game session: a session started earlier keeps its first run.

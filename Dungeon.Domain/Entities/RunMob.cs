@@ -44,6 +44,12 @@ public sealed class RunMob
 
     public int? DoorY { get; private set; }
 
+    /// <summary>Engaged in the fight of an open encounter: it does not play until it is settled.</summary>
+    public bool InCombat { get; private set; }
+
+    /// <summary>The party fled from it: it rests on its next turn, so the hero can step away.</summary>
+    public bool SkipsNextTurn { get; private set; }
+
     public Position Position => new(X, Y);
 
     /// <summary>The tile a mage announced it will jump to on its next action.</summary>
@@ -98,5 +104,24 @@ public sealed class RunMob
     {
         IsActive = false;
         KilledOnTurn = turn;
+        InCombat = false;
+        SkipsNextTurn = false;
+    }
+
+    internal void Engage() => InCombat = true;
+
+    /// <summary>Out of a fight it survived: the party fled.</summary>
+    internal void Release(bool skipNextTurn)
+    {
+        InCombat = false;
+        SkipsNextTurn = skipNextTurn;
+    }
+
+    /// <returns>Whether it had to rest this turn.</returns>
+    internal bool ConsumeRest()
+    {
+        bool rests = SkipsNextTurn;
+        SkipsNextTurn = false;
+        return rests;
     }
 }
