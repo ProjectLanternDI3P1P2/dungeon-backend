@@ -1,5 +1,27 @@
 # Changelog
 
+## [2.6.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.5.0...v2.6.0) (2026-11-27)
+
+
+### Added
+
+* **dungeon:** freeze a pack of mobs into one encounter on contact ([03aacb8](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/03aacb88522ec787bc1403165bfa8ec4950cbf64))
+* **dungeon:** open the combat after the commit and apply its result ([964d9a1](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/964d9a1dd7d7120e345ae8381be9aef00c817da2))
+* **dungeon:** report results, retry encounters and keep the party ([11e0e7b](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/11e0e7ba385406674a0f37673aa8318b85fc5f32))
+* **dungeon:** store encounters and heroes, call Combat over gRPC ([847959b](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/847959b5d0dd52c866211c8fe7dfee89d0b67d38))
+
+
+### Fixed
+
+* **docker:** force build platform to linux/amd64 ([ce56ab1](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/ce56ab188e893e8a690e818d248f259312df70b2))
+* **docker:** force build platform to linux/amd64 ([7f14bf6](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/7f14bf64d161d5259185f48fa920449e8d0b8a7a))
+* **dungeon:** honor hero ids on the REST creation in Development only ([8595d3d](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/8595d3da1254ad9194328f8c20deb1fdde6ee3bf))
+
+
+### Performance
+
+* **dungeon:** read the run once per hub command unless a fight waits ([4a88a2c](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/commit/4a88a2c5795cc9852b89489a4c85eb60ebc9de02))
+
 ## [2.5.0](https://github.com/ProjectLanternDI3P1P2/dungeon-backend/compare/v2.4.0...v2.5.0) (2026-11-26)
 
 
