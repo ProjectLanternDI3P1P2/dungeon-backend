@@ -11,8 +11,10 @@ public class CreateDungeonRunDto
     public string? Seed { get; set; }
 
     /// <summary>
-    /// The heroes of the party. Without any, a contact with a mob never opens a fight (the
-    /// historical stand-in kills the mob); Player sends them over gRPC for a game session.
+    /// The heroes of the party, honored in Development only (the dev launcher): nothing here
+    /// proves a hero belongs to the caller. Without any, a contact with a mob never opens a
+    /// fight (the historical stand-in kills the mob); Player sends them over gRPC for a game
+    /// session.
     /// </summary>
     public List<Guid>? HeroIds { get; set; }
 }
