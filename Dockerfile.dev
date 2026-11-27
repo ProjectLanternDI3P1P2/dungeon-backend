@@ -1,11 +1,12 @@
 # syntax=docker/dockerfile:1.10
 ARG DOTNET_VERSION=10.0
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS contracts
+ARG DOTNET_SDK_PLATFORM=linux/amd64
+FROM --platform=${DOTNET_SDK_PLATFORM} mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS contracts
 WORKDIR /contracts
 COPY --from=reward-contracts . .
 RUN dotnet pack Reward.Contracts/Reward.Contracts.csproj --configuration Release --output /local-packages
 
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+FROM --platform=${DOTNET_SDK_PLATFORM} mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
 WORKDIR /src
 COPY NuGet.Local.config ./NuGet.config
 COPY Dungeon.Presentation.slnx ./
