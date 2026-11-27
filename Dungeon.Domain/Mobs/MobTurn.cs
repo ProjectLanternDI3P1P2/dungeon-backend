@@ -13,8 +13,17 @@ namespace Dungeon.Domain.Mobs;
 // TODO(tech-debt): a single hero; the party of the multiplayer will need the nearest of several.
 internal static class MobTurn
 {
-    public static void Play(DungeonRun run, DungeonFloor floor, MobRules rules)
+    /// <param name="encounters">
+    /// Combat mode: contacts gather the pack into an encounter instead of killing the mobs.
+    /// </param>
+    public static void Play(
+        DungeonRun run,
+        DungeonFloor floor,
+        MobRules rules,
+        EncounterRules? encounters = null
+    )
     {
+        bool engage = encounters is { Mode: EncounterMode.Combat };
         Position hero = run.HeroPosition;
 
         // The run ends this turn once the mobs have played: deaths are dated with it.
@@ -27,25 +36,53 @@ internal static class MobTurn
 
         // Walking into the glow a mage announced is a contact too: the fight starts before the
         // mage can pick another tile.
-        foreach (RunMob mage in active.Where(mob => mob.Teleport == hero))
+        List<RunMob> mages = [.. active.Where(mob => mob.Teleport == hero)];
+        if (!engage)
         {
-            mage.Kill(turn);
+            foreach (RunMob mage in mages)
+            {
+                mage.Kill(turn);
+            }
         }
 
         bool IsFree(Position tile) =>
             tile != hero && !active.Any(other => other.IsActive && other.Position == tile);
 
-        foreach (RunMob mob in active.Where(mob => mob.IsActive))
+        foreach (RunMob mob in active.Where(mob => mob.IsActive && !mages.Contains(mob)))
         {
+            if (mob.ConsumeRest())
+            {
+                // The party fled from it last fight: it gives the hero one step.
+                continue;
+            }
+
             Act(mob, run, floor, rules, fields, IsFree);
             mob.NextTick();
         }
 
-        // TODO(tech-debt): contact kills the mob in place of a fight — call Combat with its pack
-        // (fight-trigger user story).
-        foreach (RunMob mob in active.Where(mob => mob.Position.DistanceTo(hero) <= 1))
+        if (!engage)
         {
-            mob.Kill(turn);
+            // Stub mode: a contact kills the mob in place of a fight.
+            foreach (RunMob mob in active.Where(mob => mob.Position.DistanceTo(hero) <= 1))
+            {
+                mob.Kill(turn);
+            }
+
+            return;
+        }
+
+        // Combat mode: every mob in reach joins one fight, the mages announced on the hero too.
+        List<RunMob> engaged =
+        [
+            .. active
+                .Where(mob =>
+                    mob.IsActive && mob.Position.DistanceTo(hero) <= encounters!.EngageRadius
+                )
+                .Union(mages),
+        ];
+        if (engaged.Count > 0)
+        {
+            run.StartEncounter(EncounterTrigger.Collision, engaged, null, floor, encounters!, turn);
         }
     }
 

@@ -1,3 +1,4 @@
+using Dungeon.Application.Models;
 using Dungeon.Application.Ports;
 using Dungeon.Domain.Mobs;
 using Dungeon.Domain.Services;
@@ -63,10 +64,16 @@ public static class InfrastructureServiceRegistration
             configuration.GetSection(MobOptions.SectionName).Get<MobOptions>() ?? new MobOptions()
         ).ToRules();
 
+        EncounterRules encounterRules = (
+            configuration.GetSection(EncounterOptions.SectionName).Get<EncounterOptions>()
+            ?? new EncounterOptions()
+        ).ToRules();
+
         return services
             .AddSingleton(Options.Create(options))
             .AddSingleton(settings)
             .AddSingleton(mobRules)
+            .AddSingleton(encounterRules)
             // The debug sandbox seed only means something in development.
             .AddSingleton(
                 new DungeonGenerator(
