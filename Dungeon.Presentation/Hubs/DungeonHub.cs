@@ -59,13 +59,8 @@ public sealed class DungeonHub(
             async () =>
             {
                 // A fight left pending or failed (Combat was down) is asked again on reconnect.
-                await encounterStarter.StartPendingAsync(
-                    request.DungeonId,
-                    Context.ConnectionAborted
-                );
-                GetDungeonRunByIdResult snapshot = await mediator.Send(
-                    new GetDungeonRunByIdQuery(request.DungeonId),
-                    Context.ConnectionAborted
+                GetDungeonRunByIdResult snapshot = await ReadSnapshotStartingPendingFightAsync(
+                    request.DungeonId
                 );
                 // Only once the run is known, so that a refused join leaves no group behind.
                 await Groups.AddToGroupAsync(
@@ -172,19 +167,38 @@ public sealed class DungeonHub(
 
                         // The command is committed: a contact it detected is opened in Combat
                         // now, outside its transaction (no network call in a transaction).
-                        await encounterStarter.StartPendingAsync(
-                            dungeonId,
-                            Context.ConnectionAborted
-                        );
-                        GetDungeonRunByIdResult snapshot = await mediator.Send(
-                            new GetDungeonRunByIdQuery(dungeonId),
-                            Context.ConnectionAborted
-                        );
+                        GetDungeonRunByIdResult snapshot =
+                            await ReadSnapshotStartingPendingFightAsync(dungeonId);
 
                         await Clients.Group(GroupName(dungeonId)).DungeonStateChanged(snapshot);
                         return DungeonCommandResult.Accept(commandId, snapshot);
                     }
                 )
+        );
+    }
+
+    /// <summary>
+    /// Reads the run once, and only when its snapshot shows a fight waiting for Combat (pending,
+    /// or failed because Combat was down) asks Combat to open it, then reads the run again. Most
+    /// calls have no such fight and cost a single read.
+    /// </summary>
+    private async Task<GetDungeonRunByIdResult> ReadSnapshotStartingPendingFightAsync(
+        Guid dungeonId
+    )
+    {
+        GetDungeonRunByIdResult snapshot = await mediator.Send(
+            new GetDungeonRunByIdQuery(dungeonId),
+            Context.ConnectionAborted
+        );
+        if (snapshot.Encounter?.Status is not ("pending" or "failed"))
+        {
+            return snapshot;
+        }
+
+        await encounterStarter.StartPendingAsync(dungeonId, Context.ConnectionAborted);
+        return await mediator.Send(
+            new GetDungeonRunByIdQuery(dungeonId),
+            Context.ConnectionAborted
         );
     }
 
